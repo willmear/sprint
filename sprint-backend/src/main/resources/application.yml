@@ -1,0 +1,108 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: sprint
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sprint}
+    username: ${SPRING_DATASOURCE_USERNAME:sprint}
+    password: ${SPRING_DATASOURCE_PASSWORD:sprint}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+    url: ${SPRING_FLYWAY_URL:${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sprint}}
+    user: ${SPRING_FLYWAY_USER:${SPRING_DATASOURCE_USERNAME:sprint}}
+    password: ${SPRING_FLYWAY_PASSWORD:${SPRING_DATASOURCE_PASSWORD:sprint}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.willmear.sprint: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [corr:%X{correlationId:-}] [ws:%X{workspaceId:-}] [job:%X{jobId:-}] [sprint:%X{sprintId:-}] %logger{36} - %msg%n"
+
+app:
+  jira:
+    oauth:
+      client-id: ${APP_JIRA_OAUTH_CLIENT_ID}
+      client-secret: ${APP_JIRA_OAUTH_CLIENT_SECRET}
+      authorization-url: ${APP_JIRA_OAUTH_AUTHORIZATION_URL:https://auth.atlassian.com/authorize}
+      token-url: ${APP_JIRA_OAUTH_TOKEN_URL:https://auth.atlassian.com/oauth/token}
+      redirect-uri: ${APP_JIRA_OAUTH_REDIRECT_URI:http://localhost:8080/api/jira/oauth/callback}
+    sync:
+      fetch-comments: ${APP_JIRA_SYNC_FETCH_COMMENTS:true}
+      fetch-changelog: ${APP_JIRA_SYNC_FETCH_CHANGELOG:true}
+  openai:
+    enabled: ${APP_OPENAI_ENABLED:true}
+    mock-mode: ${APP_OPENAI_MOCK_MODE:false}
+    api-key: ${APP_OPENAI_API_KEY:}
+    base-url: ${APP_OPENAI_BASE_URL:https://api.openai.com}
+    chat-path: ${APP_OPENAI_CHAT_PATH:/v1/chat/completions}
+    embeddings-path: ${APP_OPENAI_EMBEDDINGS_PATH:/v1/embeddings}
+    model: ${APP_OPENAI_MODEL:gpt-5-mini}
+    embedding-model: ${APP_OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+    timeout: ${APP_OPENAI_TIMEOUT:PT60S}
+    max-output-tokens: ${APP_OPENAI_MAX_OUTPUT_TOKENS:2500}
+    temperature: ${APP_OPENAI_TEMPERATURE:0.2}
+  retrieval:
+    enabled: ${APP_RETRIEVAL_ENABLED:true}
+    index-comments: ${APP_RETRIEVAL_INDEX_COMMENTS:true}
+    index-sprint-summary: ${APP_RETRIEVAL_INDEX_SPRINT_SUMMARY:true}
+    default-top-k: ${APP_RETRIEVAL_DEFAULT_TOP_K:5}
+    chunk-size-chars: ${APP_RETRIEVAL_CHUNK_SIZE_CHARS:1200}
+    chunk-overlap-chars: ${APP_RETRIEVAL_CHUNK_OVERLAP_CHARS:150}
+    embedding-dimension: ${APP_RETRIEVAL_EMBEDDING_DIMENSION:1536}
+    enrich-sprint-review-context: ${APP_RETRIEVAL_ENRICH_SPRINT_REVIEW_CONTEXT:true}
+  jobs:
+    enabled: ${APP_JOBS_ENABLED:true}
+    poll-interval: ${APP_JOBS_POLL_INTERVAL:5000ms}
+    max-jobs-per-poll: ${APP_JOBS_MAX_JOBS_PER_POLL:5}
+    worker-id: ${APP_JOBS_WORKER_ID:${HOSTNAME:local-worker}}
+    default-max-attempts: ${APP_JOBS_DEFAULT_MAX_ATTEMPTS:3}
+    default-queue-name: ${APP_JOBS_DEFAULT_QUEUE_NAME:default}
+  sprint-review:
+    include-comments-by-default: ${APP_SPRINT_REVIEW_INCLUDE_COMMENTS_BY_DEFAULT:true}
+    include-changelog-by-default: ${APP_SPRINT_REVIEW_INCLUDE_CHANGELOG_BY_DEFAULT:true}
+    max-highlights: ${APP_SPRINT_REVIEW_MAX_HIGHLIGHTS:5}
+    max-themes: ${APP_SPRINT_REVIEW_MAX_THEMES:4}
+    enable-job-entrypoint: ${APP_SPRINT_REVIEW_ENABLE_JOB_ENTRYPOINT:true}
+    ai:
+      use-ai-generation: ${APP_SPRINT_REVIEW_AI_USE_AI_GENERATION:true}
+      fallback-to-placeholder: ${APP_SPRINT_REVIEW_AI_FALLBACK_TO_PLACEHOLDER:true}
+      max-issues-in-prompt: ${APP_SPRINT_REVIEW_AI_MAX_ISSUES_IN_PROMPT:100}
+      max-comments-per-issue: ${APP_SPRINT_REVIEW_AI_MAX_COMMENTS_PER_ISSUE:5}
+      max-description-chars: ${APP_SPRINT_REVIEW_AI_MAX_DESCRIPTION_CHARS:2000}
+      max-comment-chars: ${APP_SPRINT_REVIEW_AI_MAX_COMMENT_CHARS:800}
+  observability:
+    http-request-logging-enabled: ${APP_OBSERVABILITY_HTTP_REQUEST_LOGGING_ENABLED:true}
+    correlation-header-name: ${APP_OBSERVABILITY_CORRELATION_HEADER_NAME:X-Correlation-Id}
+    log-request-start: ${APP_OBSERVABILITY_LOG_REQUEST_START:true}
+    log-request-end: ${APP_OBSERVABILITY_LOG_REQUEST_END:true}
+    metrics-enabled: ${APP_OBSERVABILITY_METRICS_ENABLED:true}
+  ui:
+    allowed-origin: ${APP_UI_ALLOWED_ORIGIN:http://localhost:3000}

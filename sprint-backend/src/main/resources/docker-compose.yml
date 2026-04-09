@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: sprint-postgres
+    environment:
+      POSTGRES_DB: sprint
+      POSTGRES_USER: sprint
+      POSTGRES_PASSWORD: sprint
+    ports:
+      - "5432:5432"
+    volumes:
+      - sprint-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sprint -d sprint"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: ../../..
+      dockerfile: Dockerfile
+    container_name: sprint-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sprint
+      SPRING_DATASOURCE_USERNAME: sprint
+      SPRING_DATASOURCE_PASSWORD: sprint
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/sprint
+      SPRING_FLYWAY_USER: sprint
+      SPRING_FLYWAY_PASSWORD: sprint
+      APP_UI_ALLOWED_ORIGIN: http://localhost:3000
+      APP_JIRA_OAUTH_CLIENT_ID: ${APP_JIRA_OAUTH_CLIENT_ID:-}
+      APP_JIRA_OAUTH_CLIENT_SECRET: ${APP_JIRA_OAUTH_CLIENT_SECRET:-}
+      APP_JIRA_OAUTH_AUTHORIZATION_URL: ${APP_JIRA_OAUTH_AUTHORIZATION_URL:-https://auth.atlassian.com/authorize}
+      APP_JIRA_OAUTH_TOKEN_URL: ${APP_JIRA_OAUTH_TOKEN_URL:-https://auth.atlassian.com/oauth/token}
+      APP_JIRA_OAUTH_REDIRECT_URI: ${APP_JIRA_OAUTH_REDIRECT_URI:-http://localhost:8080/api/jira/oauth/callback}
+      APP_OPENAI_ENABLED: ${APP_OPENAI_ENABLED:-true}
+      APP_OPENAI_MOCK_MODE: ${APP_OPENAI_MOCK_MODE:-false}
+      APP_OPENAI_API_KEY: ${APP_OPENAI_API_KEY:-}
+      APP_OPENAI_BASE_URL: ${APP_OPENAI_BASE_URL:-https://api.openai.com}
+      APP_OPENAI_CHAT_PATH: ${APP_OPENAI_CHAT_PATH:-/v1/chat/completions}
+      APP_OPENAI_EMBEDDINGS_PATH: ${APP_OPENAI_EMBEDDINGS_PATH:-/v1/embeddings}
+      APP_OPENAI_MODEL: ${APP_OPENAI_MODEL:-gpt-5-mini}
+      APP_OPENAI_EMBEDDING_MODEL: ${APP_OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      APP_OPENAI_TIMEOUT: ${APP_OPENAI_TIMEOUT:-PT60S}
+      APP_OPENAI_MAX_OUTPUT_TOKENS: ${APP_OPENAI_MAX_OUTPUT_TOKENS:-2500}
+      APP_OPENAI_TEMPERATURE: ${APP_OPENAI_TEMPERATURE:-0.2}
+    ports:
+      - "8080:8080"
+
+  ui:
+    build:
+      context: ../../../../sprint-ui
+      dockerfile: Dockerfile
+    container_name: sprint-ui
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+
+volumes:
+  sprint-postgres-data:

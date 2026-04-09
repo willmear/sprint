@@ -1,0 +1,11 @@
+package com.willmear.sprint.ai.model;
+
+import java.util.List;
+
+public record SprintHighlightAiResponse(
+        String title,
+        String description,
+        List<String> relatedIssueKeys,
+        String category
+) {
+}
