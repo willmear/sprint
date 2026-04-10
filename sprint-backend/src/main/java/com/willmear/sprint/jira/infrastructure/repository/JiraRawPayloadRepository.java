@@ -6,6 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface JiraRawPayloadRepository extends JpaRepository<JiraRawPayloadEntity, UUID> {
 
+    boolean existsByJiraConnection_Id(UUID jiraConnectionId);
+
+    void deleteByJiraConnection_Id(UUID jiraConnectionId);
+
     void deleteByWorkspace_IdAndJiraConnection_IdAndSyncScopeTypeAndSyncScopeReference(
             UUID workspaceId,
             UUID jiraConnectionId,

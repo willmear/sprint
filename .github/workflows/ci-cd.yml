@@ -23,6 +23,9 @@ jobs:
   test:
     name: Build And Test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sprint-backend
 
     permissions:
       contents: read
@@ -37,6 +40,7 @@ jobs:
           distribution: temurin
           java-version: "25"
           cache: maven
+          cache-dependency-path: sprint-backend/pom.xml
 
       - name: Run Maven tests
         run: mvn --batch-mode --no-transfer-progress clean test
@@ -79,11 +83,10 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./sprint-backend
+          file: ./sprint-backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-

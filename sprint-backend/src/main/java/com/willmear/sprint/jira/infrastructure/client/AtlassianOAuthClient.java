@@ -27,6 +27,7 @@ public class AtlassianOAuthClient implements JiraOAuthClientPort {
             "offline_access",
             "read:jira-user",
             "read:jira-work",
+            "read:project:jira",
             "read:board-scope:jira-software",
             "read:sprint:jira-software",
             "read:issue-details:jira",

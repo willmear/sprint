@@ -56,6 +56,7 @@ class StartJiraOAuthConnectionUseCaseTest {
                     connection.lastTestedAt(),
                     connection.externalAccountId(),
                     connection.externalAccountDisplayName(),
+                    connection.externalAccountAvatarUrl(),
                     connection.createdAt(),
                     connection.updatedAt()
             );

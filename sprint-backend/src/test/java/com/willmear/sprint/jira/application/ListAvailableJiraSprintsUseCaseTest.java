@@ -1,8 +1,10 @@
 package com.willmear.sprint.jira.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
+import com.willmear.sprint.common.exception.JiraOAuthException;
 import com.willmear.sprint.jira.domain.model.AvailableJiraSprint;
 import com.willmear.sprint.jira.domain.model.JiraAuthType;
 import com.willmear.sprint.jira.domain.model.JiraConnection;
@@ -52,6 +54,40 @@ class ListAvailableJiraSprintsUseCaseTest {
         assertThat(result).extracting(AvailableJiraSprint::boardName).containsExactly("Alpha Board", "Beta Board", "Alpha Board");
     }
 
+    @Test
+    void shouldFallBackToIssueBackedSprintDiscoveryWhenBoardDiscoveryReturnsNothing() {
+        JiraConnection connection = connection();
+
+        when(getJiraConnectionUseCase.get(connection.workspaceId(), connection.id())).thenReturn(connection);
+        when(jiraClientPort.fetchBoards(connection)).thenReturn(List.of());
+        when(jiraClientPort.fetchRecentSprints(connection)).thenReturn(List.of(
+                new ExternalJiraSprintDto(11L, 91L, "Platform Sprint", null, "active", Instant.now(), Instant.now().plusSeconds(3600), null)
+        ));
+
+        List<AvailableJiraSprint> result = useCase.list(connection.workspaceId(), connection.id());
+
+        assertThat(result).singleElement().satisfies(sprint -> {
+            assertThat(sprint.sprintId()).isEqualTo(11L);
+            assertThat(sprint.sprintName()).isEqualTo("Platform Sprint");
+            assertThat(sprint.boardName()).isNull();
+        });
+    }
+
+    @Test
+    void shouldFallBackToIssueBackedSprintDiscoveryWhenBoardDiscoveryFails() {
+        JiraConnection connection = connection();
+
+        when(getJiraConnectionUseCase.get(connection.workspaceId(), connection.id())).thenReturn(connection);
+        doThrow(new JiraOAuthException("board access failed")).when(jiraClientPort).fetchBoards(connection);
+        when(jiraClientPort.fetchRecentSprints(connection)).thenReturn(List.of(
+                new ExternalJiraSprintDto(21L, null, "Fallback Sprint", null, "future", Instant.now(), Instant.now().plusSeconds(3600), null)
+        ));
+
+        List<AvailableJiraSprint> result = useCase.list(connection.workspaceId(), connection.id());
+
+        assertThat(result).extracting(AvailableJiraSprint::sprintId).containsExactly(21L);
+    }
+
     private JiraConnection connection() {
         return new JiraConnection(
                 UUID.randomUUID(),
@@ -66,6 +102,7 @@ class ListAvailableJiraSprintsUseCaseTest {
                 Instant.now(),
                 "acct",
                 "User",
+                "https://avatar.example/user.png",
                 Instant.now(),
                 Instant.now()
         );

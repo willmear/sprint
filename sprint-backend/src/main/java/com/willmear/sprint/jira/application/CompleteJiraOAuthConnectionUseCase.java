@@ -67,6 +67,7 @@ public class CompleteJiraOAuthConnectionUseCase {
                     existingConnection.lastTestedAt(),
                     existingConnection.externalAccountId(),
                     existingConnection.externalAccountDisplayName(),
+                    existingConnection.externalAccountAvatarUrl(),
                     existingConnection.createdAt(),
                     Instant.now()
             ));
@@ -85,6 +86,7 @@ public class CompleteJiraOAuthConnectionUseCase {
                     Instant.now(),
                     accountSummary.accountId(),
                     accountSummary.displayName(),
+                    accountSummary.avatarUrl(),
                     authorizedConnection.createdAt(),
                     Instant.now()
             ));
@@ -105,6 +107,7 @@ public class CompleteJiraOAuthConnectionUseCase {
                     existingConnection.lastTestedAt(),
                     existingConnection.externalAccountId(),
                     existingConnection.externalAccountDisplayName(),
+                    existingConnection.externalAccountAvatarUrl(),
                     existingConnection.createdAt(),
                     Instant.now()
             ));

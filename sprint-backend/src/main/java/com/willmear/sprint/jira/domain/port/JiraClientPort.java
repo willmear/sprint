@@ -22,6 +22,8 @@ public interface JiraClientPort {
 
     List<ExternalJiraSprintDto> fetchBoardSprints(JiraConnection connection, Long boardId);
 
+    List<ExternalJiraSprintDto> fetchRecentSprints(JiraConnection connection);
+
     ExternalJiraSprintDto fetchSprint(JiraConnection connection, Long sprintId);
 
     List<ExternalJiraIssueDto> fetchSprintIssues(JiraConnection connection, Long sprintId);

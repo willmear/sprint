@@ -60,6 +60,7 @@ class FailJiraOAuthConnectionUseCaseTest {
                 null,
                 null,
                 null,
+                null,
                 Instant.now(),
                 Instant.now()
         );

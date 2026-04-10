@@ -54,6 +54,9 @@ public class JiraConnectionEntity extends AuditableEntity {
     @Column(name = "external_account_display_name", length = 255)
     private String externalAccountDisplayName;
 
+    @Column(name = "external_account_avatar_url", length = 1024)
+    private String externalAccountAvatarUrl;
+
     public WorkspaceEntity getWorkspace() {
         return workspace;
     }
@@ -140,5 +143,13 @@ public class JiraConnectionEntity extends AuditableEntity {
 
     public void setExternalAccountDisplayName(String externalAccountDisplayName) {
         this.externalAccountDisplayName = externalAccountDisplayName;
+    }
+
+    public String getExternalAccountAvatarUrl() {
+        return externalAccountAvatarUrl;
+    }
+
+    public void setExternalAccountAvatarUrl(String externalAccountAvatarUrl) {
+        this.externalAccountAvatarUrl = externalAccountAvatarUrl;
     }
 }

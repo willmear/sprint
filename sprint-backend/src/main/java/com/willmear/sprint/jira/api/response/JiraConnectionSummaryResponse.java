@@ -10,6 +10,7 @@ public record JiraConnectionSummaryResponse(
         String authType,
         String status,
         String externalAccountDisplayName,
+        String externalAccountAvatarUrl,
         Instant lastTestedAt,
         Instant createdAt
 ) {

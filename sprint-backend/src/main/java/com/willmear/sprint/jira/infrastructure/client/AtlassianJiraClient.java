@@ -25,8 +25,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.web.client.HttpClientErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +71,8 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
         return new JiraAccountSummary(
                 text(response, "accountId"),
                 text(response, "displayName"),
-                text(response, "emailAddress")
+                text(response, "emailAddress"),
+                text(response.path("avatarUrls"), "48x48")
         );
     }
 
@@ -85,6 +90,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
     @Override
     public List<ExternalJiraBoardDto> fetchBoards(JiraConnection connection) {
         ResourceContext resource = resolveResource(connection);
+        ensureScopes(resource, "board discovery", "read:board-scope:jira-software", "read:project:jira");
         List<ExternalJiraBoardDto> boards = new ArrayList<>();
         int startAt = 0;
 
@@ -109,6 +115,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
     @Override
     public ExternalJiraBoardDto fetchBoard(JiraConnection connection, Long boardId) {
         ResourceContext resource = resolveResource(connection);
+        ensureScopes(resource, "board lookup", "read:board-scope:jira-software", "read:project:jira");
         JsonNode response = getJson(resource, "/rest/agile/1.0/board/" + boardId);
         return new ExternalJiraBoardDto(
                 longValue(response, "id"),
@@ -121,6 +128,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
     @Override
     public List<ExternalJiraSprintDto> fetchBoardSprints(JiraConnection connection, Long boardId) {
         ResourceContext resource = resolveResource(connection);
+        ensureScopes(resource, "board sprint listing", "read:sprint:jira-software");
         List<ExternalJiraSprintDto> sprints = new ArrayList<>();
         int startAt = 0;
 
@@ -150,8 +158,40 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
     }
 
     @Override
+    public List<ExternalJiraSprintDto> fetchRecentSprints(JiraConnection connection) {
+        ResourceContext resource = resolveResource(connection);
+        ensureScopes(resource, "issue-backed sprint discovery", "read:issue-details:jira", "read:jql:jira");
+        String sprintFieldId = resolveSprintFieldId(resource);
+        if (!StringUtils.hasText(sprintFieldId)) {
+            return List.of();
+        }
+
+        Map<Long, ExternalJiraSprintDto> deduplicated = new LinkedHashMap<>();
+        int startAt = 0;
+
+        while (true) {
+            JsonNode response = getJson(
+                    resource,
+                    "/rest/api/3/search/jql?jql=" + encodeQuery("Sprint is not EMPTY ORDER BY updated DESC")
+                            + "&startAt=" + startAt
+                            + "&maxResults=100"
+                            + "&fields=" + sprintFieldId
+            );
+            JsonNode issueNodes = response.path("issues");
+            issueNodes.forEach(issueNode -> collectSprints(issueNode.path("fields").path(sprintFieldId), deduplicated));
+            startAt += response.path("maxResults").asInt(issueNodes.size());
+            if (issueNodes.isEmpty() || startAt >= response.path("total").asInt(startAt) || deduplicated.size() >= 200) {
+                break;
+            }
+        }
+
+        return List.copyOf(deduplicated.values());
+    }
+
+    @Override
     public ExternalJiraSprintDto fetchSprint(JiraConnection connection, Long sprintId) {
         ResourceContext resource = resolveResource(connection);
+        ensureScopes(resource, "sprint lookup", "read:sprint:jira-software");
         JsonNode response = getJson(resource, "/rest/agile/1.0/sprint/" + sprintId);
         return new ExternalJiraSprintDto(
                 longValue(response, "id"),
@@ -168,6 +208,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
     @Override
     public List<ExternalJiraIssueDto> fetchSprintIssues(JiraConnection connection, Long sprintId) {
         ResourceContext resource = resolveResource(connection);
+        ensureScopes(resource, "sprint issue listing", "read:sprint:jira-software", "read:issue-details:jira", "read:jql:jira");
         List<ExternalJiraIssueDto> issues = new ArrayList<>();
         int startAt = 0;
 
@@ -193,6 +234,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
     @Override
     public List<ExternalJiraCommentDto> fetchIssueComments(JiraConnection connection, String issueKey) {
         ResourceContext resource = resolveResource(connection);
+        ensureScopes(resource, "issue comment listing", "read:comment:jira");
         List<ExternalJiraCommentDto> comments = new ArrayList<>();
         int startAt = 0;
 
@@ -222,6 +264,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
     @Override
     public List<ExternalJiraChangelogDto> fetchIssueChangelog(JiraConnection connection, String issueKey) {
         ResourceContext resource = resolveResource(connection);
+        ensureScopes(resource, "issue changelog listing", "read:issue.changelog:jira");
         List<ExternalJiraChangelogDto> events = new ArrayList<>();
         int startAt = 0;
 
@@ -304,7 +347,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
             if (StringUtils.hasText(normalizedBaseUrl)) {
                 for (JiraAccessibleResource resource : resources) {
                     if (Objects.equals(normalizeUrl(resource.url()), normalizedBaseUrl)) {
-                        return new ResourceContext(resource.cloudId(), resource.url(), accessToken);
+                        return new ResourceContext(resource.cloudId(), resource.url(), accessToken, resource.scopes());
                     }
                 }
             }
@@ -312,7 +355,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
             JiraAccessibleResource selected = resources.stream()
                     .min(Comparator.comparing(resource -> normalizeUrl(resource.url()) == null ? "" : normalizeUrl(resource.url())))
                     .orElseThrow(() -> new JiraOAuthException("No Jira sites are accessible for the authorized Atlassian account."));
-            return new ResourceContext(selected.cloudId(), selected.url(), accessToken);
+            return new ResourceContext(selected.cloudId(), selected.url(), accessToken, selected.scopes());
         } catch (RuntimeException exception) {
             if (isUnauthorized(exception) && StringUtils.hasText(effectiveConnection.encryptedRefreshToken())) {
                 JiraConnection refreshedConnection = refreshConnection(effectiveConnection);
@@ -333,7 +376,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
         if (StringUtils.hasText(normalizedBaseUrl)) {
             for (JiraAccessibleResource resource : resources) {
                 if (Objects.equals(normalizeUrl(resource.url()), normalizedBaseUrl)) {
-                    return new ResourceContext(resource.cloudId(), resource.url(), connection.encryptedAccessToken());
+                    return new ResourceContext(resource.cloudId(), resource.url(), connection.encryptedAccessToken(), resource.scopes());
                 }
             }
         }
@@ -341,7 +384,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
         JiraAccessibleResource selected = resources.stream()
                 .min(Comparator.comparing(resource -> normalizeUrl(resource.url()) == null ? "" : normalizeUrl(resource.url())))
                 .orElseThrow(() -> new JiraOAuthException("No Jira sites are accessible for the authorized Atlassian account."));
-        return new ResourceContext(selected.cloudId(), selected.url(), connection.encryptedAccessToken());
+        return new ResourceContext(selected.cloudId(), selected.url(), connection.encryptedAccessToken(), selected.scopes());
     }
 
     private JiraConnection refreshConnectionIfExpiring(JiraConnection connection) {
@@ -369,6 +412,7 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
                 connection.lastTestedAt(),
                 connection.externalAccountId(),
                 connection.externalAccountDisplayName(),
+                connection.externalAccountAvatarUrl(),
                 connection.createdAt(),
                 Instant.now()
         ));
@@ -383,6 +427,68 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
             current = current.getCause();
         }
         return false;
+    }
+
+    private String resolveSprintFieldId(ResourceContext resource) {
+        JsonNode fields = getJson(resource, "/rest/api/3/field");
+        for (JsonNode fieldNode : fields) {
+            JsonNode schemaNode = fieldNode.path("schema");
+            if ("com.pyxis.greenhopper.jira:gh-sprint".equals(text(schemaNode, "custom"))) {
+                return text(fieldNode, "id");
+            }
+        }
+        return null;
+    }
+
+    private void collectSprints(JsonNode sprintFieldNode, Map<Long, ExternalJiraSprintDto> deduplicated) {
+        if (sprintFieldNode == null || sprintFieldNode.isMissingNode() || sprintFieldNode.isNull()) {
+            return;
+        }
+        if (sprintFieldNode.isArray()) {
+            sprintFieldNode.forEach(node -> collectSprints(node, deduplicated));
+            return;
+        }
+        Long sprintId = longValue(sprintFieldNode, "id");
+        if (sprintId == null) {
+            return;
+        }
+        deduplicated.putIfAbsent(sprintId, new ExternalJiraSprintDto(
+                sprintId,
+                longValue(sprintFieldNode, "boardId"),
+                text(sprintFieldNode, "name"),
+                text(sprintFieldNode, "goal"),
+                text(sprintFieldNode, "state"),
+                instantValue(sprintFieldNode, "startDate"),
+                instantValue(sprintFieldNode, "endDate"),
+                instantValue(sprintFieldNode, "completeDate")
+        ));
+    }
+
+    private void ensureScopes(ResourceContext resource, String operation, String... requiredScopes) {
+        if (requiredScopes == null || requiredScopes.length == 0) {
+            return;
+        }
+        Set<String> availableScopes = resource.scopes() == null
+                ? Set.of()
+                : new LinkedHashSet<>(resource.scopes());
+        List<String> missingScopes = new ArrayList<>();
+        for (String requiredScope : requiredScopes) {
+            if (!availableScopes.contains(requiredScope)) {
+                missingScopes.add(requiredScope);
+            }
+        }
+        if (!missingScopes.isEmpty()) {
+            throw new JiraOAuthException(
+                    "Jira token for "
+                            + resource.baseUrl()
+                            + " is missing scopes for "
+                            + operation
+                            + ". Missing: "
+                            + String.join(", ", missingScopes)
+                            + ". Granted: "
+                            + String.join(", ", availableScopes)
+            );
+        }
     }
 
     private JsonNode getJson(ResourceContext resource, String apiPath) {
@@ -401,6 +507,10 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
         } catch (Exception exception) {
             throw new JiraOAuthException("Failed to parse Jira API response for path " + apiPath + ".", exception);
         }
+    }
+
+    private String encodeQuery(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private String flattenRichText(JsonNode node) {
@@ -468,6 +578,6 @@ public class AtlassianJiraClient implements JiraClientPort, JiraRestClient {
         return normalized;
     }
 
-    private record ResourceContext(String cloudId, String baseUrl, String accessToken) {
+    private record ResourceContext(String cloudId, String baseUrl, String accessToken, List<String> scopes) {
     }
 }

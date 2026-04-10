@@ -12,6 +12,7 @@ public record JiraConnectionResponse(
         String clientEmailOrUsername,
         String externalAccountId,
         String externalAccountDisplayName,
+        String externalAccountAvatarUrl,
         Instant tokenExpiresAt,
         Instant lastTestedAt,
         Instant createdAt,

@@ -1,7 +1,10 @@
 .idea/
 .mvn/wrapper/maven-wrapper.jar
 target/
+.DS_Store
+sprint-ui/node_modules/
+sprint-ui/dist/
+sprint-ui/.next/
 *.iml
 *.log
 .DS_Store
-

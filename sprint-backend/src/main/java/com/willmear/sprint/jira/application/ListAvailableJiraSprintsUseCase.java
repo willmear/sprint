@@ -11,10 +11,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ListAvailableJiraSprintsUseCase {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ListAvailableJiraSprintsUseCase.class);
 
     private final GetJiraConnectionUseCase getJiraConnectionUseCase;
     private final JiraClientPort jiraClientPort;
@@ -29,7 +33,12 @@ public class ListAvailableJiraSprintsUseCase {
 
     public List<AvailableJiraSprint> list(UUID workspaceId, UUID connectionId) {
         JiraConnection connection = getJiraConnectionUseCase.get(workspaceId, connectionId);
-        List<ExternalJiraBoardDto> boards = jiraClientPort.fetchBoards(connection);
+        List<ExternalJiraBoardDto> boards = List.of();
+        try {
+            boards = jiraClientPort.fetchBoards(connection);
+        } catch (RuntimeException exception) {
+            LOGGER.warn("jira.available-sprints.board-discovery.failed workspaceId={} connectionId={}", workspaceId, connectionId, exception);
+        }
         Map<Long, AvailableJiraSprint> deduplicated = new LinkedHashMap<>();
 
         for (ExternalJiraBoardDto board : boards) {
@@ -44,6 +53,27 @@ public class ListAvailableJiraSprintsUseCase {
                         sprint.state(),
                         sprint.boardId() != null ? sprint.boardId() : board.id(),
                         board.name(),
+                        sprint.startDate(),
+                        sprint.endDate(),
+                        sprint.completeDate()
+                ));
+            }
+        }
+
+        if (deduplicated.isEmpty()) {
+            Map<Long, String> boardNamesById = boards.stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            ExternalJiraBoardDto::id,
+                            ExternalJiraBoardDto::name,
+                            (left, right) -> left
+                    ));
+            for (ExternalJiraSprintDto sprint : jiraClientPort.fetchRecentSprints(connection)) {
+                deduplicated.putIfAbsent(sprint.id(), new AvailableJiraSprint(
+                        sprint.id(),
+                        sprint.name(),
+                        sprint.state(),
+                        sprint.boardId(),
+                        sprint.boardId() != null ? boardNamesById.get(sprint.boardId()) : null,
                         sprint.startDate(),
                         sprint.endDate(),
                         sprint.completeDate()

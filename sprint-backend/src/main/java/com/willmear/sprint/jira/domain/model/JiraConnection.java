@@ -16,6 +16,7 @@ public record JiraConnection(
         Instant lastTestedAt,
         String externalAccountId,
         String externalAccountDisplayName,
+        String externalAccountAvatarUrl,
         Instant createdAt,
         Instant updatedAt
 ) {

@@ -134,6 +134,15 @@ public class JiraConnectionController {
         return ResponseEntity.ok(jiraConnectionMapper.toResponse(jiraConnectionService.disconnect(workspaceId, connectionId)));
     }
 
+    @DeleteMapping("/api/workspaces/{workspaceId}/jira/connections/{connectionId}/remove")
+    public ResponseEntity<Void> removeConnection(
+            @PathVariable UUID workspaceId,
+            @PathVariable UUID connectionId
+    ) {
+        jiraConnectionService.remove(workspaceId, connectionId);
+        return ResponseEntity.noContent().build();
+    }
+
     private ResponseEntity<Void> buildRedirectResponse(URI redirectUri) {
         return ResponseEntity.status(302)
                 .header(HttpHeaders.LOCATION, redirectUri.toString())

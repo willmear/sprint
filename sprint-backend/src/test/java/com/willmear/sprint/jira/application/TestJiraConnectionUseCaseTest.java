@@ -40,7 +40,7 @@ class TestJiraConnectionUseCaseTest {
         when(jiraClientPort.testConnection(connection)).thenReturn(new JiraConnectionTestResult(
                 true,
                 "ok",
-                new JiraAccountSummary("acct", "User", "user@example.com")
+                new JiraAccountSummary("acct", "User", "user@example.com", "https://avatar.example/user.png")
         ));
 
         JiraConnectionTestResult result = useCase.test(connection.workspaceId(), connection.id());
@@ -79,6 +79,7 @@ class TestJiraConnectionUseCaseTest {
                 Instant.now(),
                 "acct",
                 "User",
+                "https://avatar.example/user.png",
                 Instant.now(),
                 Instant.now()
         );

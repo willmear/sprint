@@ -55,6 +55,7 @@ public class StartJiraOAuthConnectionUseCase {
                 null,
                 null,
                 null,
+                null,
                 now,
                 now
         ));

@@ -2,6 +2,11 @@
 
 Backend-first modular monolith scaffold for ingesting Jira sprint data, generating sprint review artifacts, and preparing future AI and retrieval integrations.
 
+## Repo Layout
+
+- `sprint-backend/`: Spring Boot backend, Maven build, Dockerfile, and local Docker Compose stack
+- `sprint-ui/`: Next.js frontend
+
 ## Stack
 
 - Java 25
@@ -30,7 +35,7 @@ Backend-first modular monolith scaffold for ingesting Jira sprint data, generati
 ## Persistence
 
 - PostgreSQL is the target database.
-- Flyway migrations live under `src/main/resources/db/migration`.
+- Flyway migrations live under `sprint-backend/src/main/resources/db/migration`.
 - The current schema includes `workspace`, `jira_connection`, `jira_oauth_state`, and synced Jira snapshot tables for boards, sprints, issues, comments, changelog events, and raw payloads.
 - Local datasource properties can be overridden with `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD`.
 
@@ -59,11 +64,12 @@ Backend-first modular monolith scaffold for ingesting Jira sprint data, generati
 
 ## Sprint Review Orchestration
 
-- Sprint review orchestration now builds a `SprintContext` from synced local Jira data.
+- Sprint review orchestration now builds a `SprintContext` from synced local Jira data, including issue comments used during generation.
 - Direct generation endpoint: `POST /api/workspaces/{workspaceId}/sprints/{sprintId}/review/generate`
 - Context endpoint: `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/review/context`
 - Optional job entrypoint: `POST /api/workspaces/{workspaceId}/sprints/{sprintId}/review/generate-job`
-- Sprint review generation now routes through prompt builders and an AI generation layer, with deterministic fallback when AI is disabled or unavailable.
+- Sprint review generation now uses the real OpenAI API when enabled, grounding the generated review in synced sprint tickets, statuses, and comments.
+- Placeholder generation remains available as an explicit fallback when AI is disabled or the AI path fails.
 
 ## Artifact Persistence
 
@@ -74,10 +80,10 @@ Backend-first modular monolith scaffold for ingesting Jira sprint data, generati
 
 ## AI Module
 
-- The AI module now owns prompt builders, structured parsers, workflow-specific generation use cases, and an OpenAI-oriented client abstraction.
-- `app.openai.mock-mode=true` enables deterministic local development responses without live API calls.
-- Sprint review generation can use the AI-backed path while still falling back safely to the placeholder generator.
-- Artifact persistence and retrieval/vector integration are still future steps.
+- The AI module owns the OpenAI client, sprint review prompt building, structured parsing, and validation.
+- Set `APP_OPENAI_API_KEY` to enable real OpenAI-backed sprint review generation.
+- `app.openai.mock-mode=true` keeps deterministic local development responses without live API calls.
+- Successful AI generation persists the structured sprint review through the existing artifact flow, and `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/review` returns the persisted artifact-backed review.
 
 ## Retrieval
 
@@ -95,12 +101,54 @@ Backend-first modular monolith scaffold for ingesting Jira sprint data, generati
 
 ## Local Runtime
 
-- `src/main/resources/docker-compose.yml` runs PostgreSQL and the Spring Boot application together for local development.
-- `Dockerfile` builds the application jar in a Maven builder stage and runs it on Java 25.
+- `sprint-backend/src/main/resources/docker-compose.yml` runs PostgreSQL with pgvector, the Spring Boot application, and the Next.js UI together for local development.
+- `sprint-ui/` is a separate Next.js + React + TypeScript frontend app in the same repo for workspace, Jira OAuth, sprint sync, sprint detail, sprint review, and jobs flows.
+- `sprint-backend/Dockerfile` builds the application jar in a Maven builder stage and runs it on Java 25.
 - The application reads datasource and Flyway settings from environment variables, with local defaults in `application.yml`.
+- Jira OAuth resolves the actual Jira site URL from Atlassian after login, so local runtime only needs `APP_JIRA_OAUTH_*`; older names like `APP_JIRA_BASE_URL`, `APP_JIRA_USERNAME`, and `APP_JIRA_API_TOKEN` are not used by the application.
+- The backend allows the local frontend origin via `APP_UI_ALLOWED_ORIGIN`, which defaults to `http://localhost:3000`.
 
-Run locally with:
+Run the full local stack from the repo root:
 
 ```bash
-docker compose -f src/main/resources/docker-compose.yml up --build
+docker compose -f sprint-backend/src/main/resources/docker-compose.yml up --build
 ```
+
+Run the backend tests from the backend directory:
+
+```bash
+cd sprint-backend
+mvn test
+```
+
+Run the backend app locally from the backend directory:
+
+```bash
+cd sprint-backend
+mvn spring-boot:run
+```
+
+Run the frontend locally from the frontend directory:
+
+```bash
+cd sprint-ui
+npm install
+npm run dev
+```
+
+Build the backend Docker image from the backend directory:
+
+```bash
+cd sprint-backend
+docker build -t sprint-backend .
+```
+
+This gives you:
+- backend API on `http://localhost:8080`
+- frontend UI on `http://localhost:3000`
+
+## Frontend Notes
+
+- The UI uses Next.js App Router, React, TypeScript, Tailwind CSS, and TanStack Query.
+- Frontend API calls read `NEXT_PUBLIC_API_BASE_URL`, with a local default of `http://localhost:8080` in `sprint-ui/.env.local`.
+- Review generation and display are grounded in the existing Spring Boot sprint review endpoints and render the structured summary, themes, highlights, blockers, and speaker notes returned by the backend.

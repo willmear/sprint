@@ -25,6 +25,8 @@ public interface JiraConnectionService {
 
     JiraConnection disconnect(UUID workspaceId, UUID connectionId);
 
+    void remove(UUID workspaceId, UUID connectionId);
+
     record StartOAuthConnectionResult(UUID connectionId, String state, String authorizationUrl) {
     }
 

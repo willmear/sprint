@@ -12,4 +12,6 @@ public interface JiraConnectionRepositoryPort {
     List<JiraConnection> findByWorkspaceId(UUID workspaceId);
 
     Optional<JiraConnection> findByIdAndWorkspaceId(UUID connectionId, UUID workspaceId);
+
+    void deleteByIdAndWorkspaceId(UUID connectionId, UUID workspaceId);
 }

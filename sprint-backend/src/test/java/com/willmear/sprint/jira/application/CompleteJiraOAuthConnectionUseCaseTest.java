@@ -57,7 +57,7 @@ class CompleteJiraOAuthConnectionUseCaseTest {
                 new JiraAccessibleResource("cloud-id", "https://example.atlassian.net", "Example", List.of())
         ));
         when(jiraConnectionRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(jiraClientPort.getCurrentAccount(any())).thenReturn(new JiraAccountSummary("acct-1", "Example User", "user@example.com"));
+        when(jiraClientPort.getCurrentAccount(any())).thenReturn(new JiraAccountSummary("acct-1", "Example User", "user@example.com", "https://avatar.example/user.png"));
 
         JiraConnection result = useCase.complete("code", state.state());
 
@@ -65,6 +65,7 @@ class CompleteJiraOAuthConnectionUseCaseTest {
         assertThat(result.baseUrl()).isEqualTo("https://example.atlassian.net");
         assertThat(result.externalAccountId()).isEqualTo("acct-1");
         assertThat(result.externalAccountDisplayName()).isEqualTo("Example User");
+        assertThat(result.externalAccountAvatarUrl()).isEqualTo("https://avatar.example/user.png");
 
         ArgumentCaptor<JiraConnection> savedConnections = ArgumentCaptor.forClass(JiraConnection.class);
         verify(jiraConnectionRepositoryPort, times(2)).save(savedConnections.capture());
@@ -120,6 +121,7 @@ class CompleteJiraOAuthConnectionUseCaseTest {
                 "https://pending-jira-site.invalid",
                 JiraAuthType.OAUTH,
                 JiraConnectionStatus.PENDING_AUTHORIZATION,
+                null,
                 null,
                 null,
                 null,

@@ -46,6 +46,7 @@ public class FailJiraOAuthConnectionUseCase {
                 existingConnection.lastTestedAt(),
                 existingConnection.externalAccountId(),
                 existingConnection.externalAccountDisplayName(),
+                existingConnection.externalAccountAvatarUrl(),
                 existingConnection.createdAt(),
                 Instant.now()
         ));

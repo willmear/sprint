@@ -20,6 +20,7 @@ public class JiraConnectionApplicationService implements JiraConnectionService {
     private final ListJiraConnectionsUseCase listJiraConnectionsUseCase;
     private final TestJiraConnectionUseCase testJiraConnectionUseCase;
     private final DisconnectJiraConnectionUseCase disconnectJiraConnectionUseCase;
+    private final RemoveJiraConnectionUseCase removeJiraConnectionUseCase;
 
     public JiraConnectionApplicationService(
             StartJiraOAuthConnectionUseCase startJiraOAuthConnectionUseCase,
@@ -29,7 +30,8 @@ public class JiraConnectionApplicationService implements JiraConnectionService {
             GetJiraConnectionUseCase getJiraConnectionUseCase,
             ListJiraConnectionsUseCase listJiraConnectionsUseCase,
             TestJiraConnectionUseCase testJiraConnectionUseCase,
-            DisconnectJiraConnectionUseCase disconnectJiraConnectionUseCase
+            DisconnectJiraConnectionUseCase disconnectJiraConnectionUseCase,
+            RemoveJiraConnectionUseCase removeJiraConnectionUseCase
     ) {
         this.startJiraOAuthConnectionUseCase = startJiraOAuthConnectionUseCase;
         this.completeJiraOAuthConnectionUseCase = completeJiraOAuthConnectionUseCase;
@@ -39,6 +41,7 @@ public class JiraConnectionApplicationService implements JiraConnectionService {
         this.listJiraConnectionsUseCase = listJiraConnectionsUseCase;
         this.testJiraConnectionUseCase = testJiraConnectionUseCase;
         this.disconnectJiraConnectionUseCase = disconnectJiraConnectionUseCase;
+        this.removeJiraConnectionUseCase = removeJiraConnectionUseCase;
     }
 
     @Override
@@ -79,5 +82,10 @@ public class JiraConnectionApplicationService implements JiraConnectionService {
     @Override
     public JiraConnection disconnect(UUID workspaceId, UUID connectionId) {
         return disconnectJiraConnectionUseCase.disconnect(workspaceId, connectionId);
+    }
+
+    @Override
+    public void remove(UUID workspaceId, UUID connectionId) {
+        removeJiraConnectionUseCase.remove(workspaceId, connectionId);
     }
 }

@@ -42,6 +42,7 @@ public class TestJiraConnectionUseCase {
                 Instant.now(),
                 connection.externalAccountId(),
                 connection.externalAccountDisplayName(),
+                connection.externalAccountAvatarUrl(),
                 connection.createdAt(),
                 Instant.now()
         ));

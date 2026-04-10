@@ -42,4 +42,10 @@ public class JpaJiraConnectionRepositoryAdapter implements JiraConnectionReposit
     public Optional<JiraConnection> findByIdAndWorkspaceId(UUID connectionId, UUID workspaceId) {
         return jiraConnectionRepository.findByIdAndWorkspace_Id(connectionId, workspaceId).map(jiraConnectionMapper::toDomain);
     }
+
+    @Override
+    public void deleteByIdAndWorkspaceId(UUID connectionId, UUID workspaceId) {
+        jiraConnectionRepository.findByIdAndWorkspace_Id(connectionId, workspaceId)
+                .ifPresent(jiraConnectionRepository::delete);
+    }
 }

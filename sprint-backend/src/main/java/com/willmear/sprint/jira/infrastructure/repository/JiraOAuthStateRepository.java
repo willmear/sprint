@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface JiraOAuthStateRepository extends JpaRepository<JiraOAuthStateEntity, UUID> {
 
+    void deleteByConnection_Id(UUID connectionId);
+
     @Query("""
             select jiraOAuthState
             from JiraOAuthStateEntity jiraOAuthState

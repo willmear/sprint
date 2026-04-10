@@ -28,6 +28,7 @@ public class JiraConnectionMapper {
                 entity.getLastTestedAt(),
                 entity.getExternalAccountId(),
                 entity.getExternalAccountDisplayName(),
+                entity.getExternalAccountAvatarUrl(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -47,6 +48,7 @@ public class JiraConnectionMapper {
         entity.setLastTestedAt(connection.lastTestedAt());
         entity.setExternalAccountId(connection.externalAccountId());
         entity.setExternalAccountDisplayName(connection.externalAccountDisplayName());
+        entity.setExternalAccountAvatarUrl(connection.externalAccountAvatarUrl());
         entity.setCreatedAt(connection.createdAt() != null ? connection.createdAt() : Instant.now());
         entity.setUpdatedAt(connection.updatedAt() != null ? connection.updatedAt() : Instant.now());
         return entity;
@@ -62,6 +64,7 @@ public class JiraConnectionMapper {
                 connection.clientEmailOrUsername(),
                 connection.externalAccountId(),
                 connection.externalAccountDisplayName(),
+                connection.externalAccountAvatarUrl(),
                 connection.tokenExpiresAt(),
                 connection.lastTestedAt(),
                 connection.createdAt(),
@@ -77,6 +80,7 @@ public class JiraConnectionMapper {
                 connection.authType().name(),
                 connection.status().name(),
                 connection.externalAccountDisplayName(),
+                connection.externalAccountAvatarUrl(),
                 connection.lastTestedAt(),
                 connection.createdAt()
         );

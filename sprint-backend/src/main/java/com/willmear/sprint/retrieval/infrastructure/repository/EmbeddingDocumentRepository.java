@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EmbeddingDocumentRepository extends JpaRepository<EmbeddingDocumentEntity, UUID> {
 
+    boolean existsByJiraConnectionId(UUID jiraConnectionId);
+
     int deleteByWorkspaceIdAndExternalSprintId(UUID workspaceId, Long externalSprintId);
 
     List<EmbeddingDocumentEntity> findByWorkspaceIdAndExternalSprintIdOrderByIndexedAtDescChunkIndexAsc(UUID workspaceId, Long externalSprintId);
