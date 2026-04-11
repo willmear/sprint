@@ -42,8 +42,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     disconnect.mutate(activeConnection.id);
   }
 
+  const isFullscreenEditor = /^\/workspaces\/[^/]+\/sprints\/[^/]+\/slides$/.test(pathname);
+
+  if (isFullscreenEditor) {
+    return <div className="min-h-screen bg-[#eceff3]">{children}</div>;
+  }
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto flex min-h-screen max-w-[1600px] gap-6 px-6 py-8">
       <aside className="hidden w-64 shrink-0 rounded-[32px] border border-white/50 bg-white/70 p-4 shadow-panel backdrop-blur lg:block">
         <div className="mb-8 rounded-[28px] bg-mesh-radial px-4 py-6">
           <p className="font-display text-2xl font-bold text-ink">Sprint Studio</p>

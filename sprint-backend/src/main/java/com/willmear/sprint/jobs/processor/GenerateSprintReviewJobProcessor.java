@@ -37,7 +37,7 @@ public class GenerateSprintReviewJobProcessor implements JobProcessor {
                 new GenerateSprintReviewRequest(
                         payload.includeComments(),
                         payload.includeChangelog(),
-                        true,
+                        payload.forceRegenerate(),
                         payload.audience(),
                         payload.tone()
                 ),

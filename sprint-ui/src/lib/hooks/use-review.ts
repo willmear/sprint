@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { reviewService } from "@/services/review.service";
-import type { GenerateSprintReviewRequest } from "@/types/review";
+import type { GenerateSprintReviewJobResponse, GenerateSprintReviewRequest } from "@/types/review";
 
 export function useSprintReview(workspaceId?: string, sprintId?: string | number) {
   return useQuery({
@@ -30,6 +30,19 @@ export function useGenerateSprintReview(workspaceId: string, sprintId: string | 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["review", workspaceId, sprintId] }),
         queryClient.invalidateQueries({ queryKey: ["artifacts", workspaceId, sprintId] }),
+      ]);
+    },
+  });
+}
+
+export function useEnqueueSprintReviewJob(workspaceId: string, sprintId: string | number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: GenerateSprintReviewRequest) => reviewService.enqueue(workspaceId, sprintId, payload),
+    onSuccess: async (job: GenerateSprintReviewJobResponse) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["job", job.jobId] }),
       ]);
     },
   });

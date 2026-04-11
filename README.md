@@ -76,6 +76,8 @@ Backend-first modular monolith scaffold for ingesting Jira sprint data, generati
 - Generated sprint reviews are now persisted as artifacts with structured JSON and rendered markdown.
 - Latest sprint review retrieval is now backed by durable artifact storage.
 - Jobs-based sprint review generation persists the same durable output path as direct generation.
+- Persisted sprint reviews can now be exported on demand as markdown, presentation outlines, and copy-ready speaker notes.
+- Editable presentation decks can now be created from persisted sprint review artifacts and saved before future PowerPoint export.
 - Retrieval/vector search remains a future step.
 
 ## AI Module
@@ -152,3 +154,5 @@ This gives you:
 - The UI uses Next.js App Router, React, TypeScript, Tailwind CSS, and TanStack Query.
 - Frontend API calls read `NEXT_PUBLIC_API_BASE_URL`, with a local default of `http://localhost:8080` in `sprint-ui/.env.local`.
 - Review generation and display are grounded in the existing Spring Boot sprint review endpoints and render the structured summary, themes, highlights, blockers, and speaker notes returned by the backend.
+- The review page now supports one-click export and copy flows for markdown, presentation outlines, and speaker notes.
+- A new slide editor flow lets users open a deck derived from the latest sprint review, edit slides and speaker notes, reorder/add/delete slides, and save the deck for later export. PowerPoint export is planned to use these edited decks in a later step.

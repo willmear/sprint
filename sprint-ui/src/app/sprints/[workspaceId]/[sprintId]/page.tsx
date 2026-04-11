@@ -25,9 +25,14 @@ export default function SprintDetailPage({
           <h1 className="mt-2 font-display text-4xl font-bold text-ink">{sprint.data?.name ?? `Sprint ${sprintId}`}</h1>
           <p className="mt-2 max-w-2xl text-sm text-stone-600">{sprint.data?.goal || "No sprint goal captured."}</p>
         </div>
-        <Link href={`/review/${workspaceId}/${sprintId}`}>
-          <Button>Open review</Button>
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href={`/review/${workspaceId}/${sprintId}`}>
+            <Button>Open review</Button>
+          </Link>
+          <Link href={`/workspaces/${workspaceId}/sprints/${sprintId}/slides`}>
+            <Button type="button" variant="secondary">Edit slides</Button>
+          </Link>
+        </div>
       </header>
 
       <div className="grid gap-6 md:grid-cols-4">

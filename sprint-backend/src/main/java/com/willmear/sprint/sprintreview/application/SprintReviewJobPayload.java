@@ -7,6 +7,7 @@ public record SprintReviewJobPayload(
         Long externalSprintId,
         boolean includeComments,
         boolean includeChangelog,
+        boolean forceRegenerate,
         String audience,
         String tone
 ) {

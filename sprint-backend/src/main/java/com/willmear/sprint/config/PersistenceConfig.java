@@ -20,6 +20,12 @@ import com.willmear.sprint.jira.infrastructure.repository.JiraRawPayloadReposito
 import com.willmear.sprint.jira.infrastructure.repository.JiraSprintRepository;
 import com.willmear.sprint.jobs.entity.JobEntity;
 import com.willmear.sprint.jobs.repository.JobRepository;
+import com.willmear.sprint.presentation.entity.PresentationDeckEntity;
+import com.willmear.sprint.presentation.entity.PresentationSlideEntity;
+import com.willmear.sprint.presentation.entity.PresentationSlideElementEntity;
+import com.willmear.sprint.presentation.repository.PresentationDeckRepository;
+import com.willmear.sprint.presentation.repository.PresentationSlideRepository;
+import com.willmear.sprint.presentation.repository.PresentationSlideElementRepository;
 import com.willmear.sprint.retrieval.infrastructure.entity.EmbeddingDocumentEntity;
 import com.willmear.sprint.retrieval.infrastructure.repository.EmbeddingDocumentRepository;
 import com.willmear.sprint.workspace.entity.WorkspaceEntity;
@@ -49,7 +55,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         JiraRawPayloadEntity.class,
         JobEntity.class,
         ArtifactEntity.class,
-        EmbeddingDocumentEntity.class
+        EmbeddingDocumentEntity.class,
+        PresentationDeckEntity.class,
+        PresentationSlideEntity.class,
+        PresentationSlideElementEntity.class
 })
 @EnableJpaRepositories(basePackageClasses = {
         WorkspaceRepository.class,
@@ -63,7 +72,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         JiraRawPayloadRepository.class,
         JobRepository.class,
         ArtifactRepository.class,
-        EmbeddingDocumentRepository.class
+        EmbeddingDocumentRepository.class,
+        PresentationDeckRepository.class,
+        PresentationSlideRepository.class,
+        PresentationSlideElementRepository.class
 })
 public class PersistenceConfig {
 

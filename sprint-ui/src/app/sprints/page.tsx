@@ -236,6 +236,9 @@ function SprintsPageContent() {
                 <Link href={`/review/${selectedWorkspaceId}/${sprint.sprintId}`}>
                   <Button variant="ghost">Review</Button>
                 </Link>
+                <Link href={`/workspaces/${selectedWorkspaceId}/sprints/${sprint.sprintId}/slides`}>
+                  <Button variant="secondary">Edit slides</Button>
+                </Link>
               </div>
             </div>
           </Card>
@@ -254,6 +257,9 @@ function SprintsPageContent() {
             </Link>
             <Link href={`/review/${syncSprint.data.workspaceId}/${syncSprint.data.sprintId}`}>
               <Button>Generate review</Button>
+            </Link>
+            <Link href={`/workspaces/${syncSprint.data.workspaceId}/sprints/${syncSprint.data.sprintId}/slides`}>
+              <Button variant="secondary">Edit slides</Button>
             </Link>
           </div>
         </Card>
