@@ -17,7 +17,6 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   test:
@@ -50,6 +49,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            image_name: ${{ github.repository }}
+            context: ./sprint-backend
+            dockerfile: ./sprint-backend/Dockerfile
+          - name: frontend
+            image_name: ${{ github.repository }}-ui
+            context: ./sprint-ui
+            dockerfile: ./sprint-ui/Dockerfile
 
     permissions:
       contents: read
@@ -73,7 +84,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ matrix.image_name }}
           tags: |
             type=ref,event=branch
             type=ref,event=tag
@@ -83,10 +94,10 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./sprint-backend
-          file: ./sprint-backend/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
