@@ -11,6 +11,7 @@ public record PresentationDeck(
         String referenceId,
         String title,
         String subtitle,
+        String themeId,
         DeckStatus status,
         List<PresentationSlide> slides,
         UUID sourceArtifactId,

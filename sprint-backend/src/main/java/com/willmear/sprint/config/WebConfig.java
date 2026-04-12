@@ -21,6 +21,6 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(uiProperties.allowedOrigin())
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .exposedHeaders("X-Correlation-Id");
+                .exposedHeaders("X-Correlation-Id", "Content-Disposition");
     }
 }

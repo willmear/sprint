@@ -4,14 +4,27 @@ import com.willmear.sprint.TestSprintReviewFactory;
 import com.willmear.sprint.artifact.api.ArtifactService;
 import com.willmear.sprint.artifact.domain.ArtifactType;
 import com.willmear.sprint.artifact.mapper.SprintReviewArtifactMapper;
+import com.willmear.sprint.config.OpenAiProperties;
+import com.willmear.sprint.config.PresentationAiProperties;
 import com.willmear.sprint.export.mapper.ArtifactToSprintReviewMapper;
 import com.willmear.sprint.presentation.mapper.PresentationDeckMapper;
 import com.willmear.sprint.presentation.mapper.PresentationSlideElementMapper;
 import com.willmear.sprint.presentation.mapper.PresentationSlideMapper;
 import com.willmear.sprint.presentation.mapper.SprintReviewToPresentationDeckMapper;
+import com.willmear.sprint.presentation.template.DeckLayoutEngine;
+import com.willmear.sprint.presentation.template.SlideTemplateRegistry;
+import com.willmear.sprint.presentation.template.SlideTemplateType;
+import com.willmear.sprint.presentation.theme.application.PresentationThemeApplicationService;
+import com.willmear.sprint.presentation.theme.registry.ThemeRegistry;
+import com.willmear.sprint.presentationplan.application.CreatePresentationPlanFromSprintReviewUseCase;
+import com.willmear.sprint.presentationplan.application.GeneratePresentationPlanUseCase;
+import com.willmear.sprint.presentationplan.application.PresentationPlanApplicationService;
+import com.willmear.sprint.presentationplan.mapper.PresentationPlanToPresentationDeckMapper;
+import com.willmear.sprint.presentationplan.mapper.SprintReviewToPresentationPlanMapper;
 import com.willmear.sprint.presentation.repository.PresentationDeckRepository;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,7 +39,21 @@ class PresentationDeckApplicationServiceTest {
     private final ArtifactService artifactService = mock(ArtifactService.class);
     private final PresentationSlideElementMapper presentationSlideElementMapper = new PresentationSlideElementMapper();
     private final PresentationSlideMapper presentationSlideMapper = new PresentationSlideMapper(presentationSlideElementMapper);
-    private final PresentationDeckMapper presentationDeckMapper = new PresentationDeckMapper(presentationSlideMapper);
+    private final ThemeRegistry themeRegistry = new ThemeRegistry("corporate-clean");
+    private final PresentationDeckMapper presentationDeckMapper = new PresentationDeckMapper(presentationSlideMapper, themeRegistry);
+    private final PresentationPlanApplicationService presentationPlanApplicationService =
+            new PresentationPlanApplicationService(
+                    new CreatePresentationPlanFromSprintReviewUseCase(
+                            new SprintReviewToPresentationPlanMapper(),
+                            mock(GeneratePresentationPlanUseCase.class),
+                            new OpenAiProperties(false, false, "", "", "", "", "gpt-test", "", Duration.ofSeconds(30), 1200, 0.2),
+                            new PresentationAiProperties(false, true)
+                    )
+            );
+    private final PresentationPlanToPresentationDeckMapper presentationPlanToPresentationDeckMapper =
+            new PresentationPlanToPresentationDeckMapper(
+                    new DeckLayoutEngine(new SlideTemplateRegistry(), new PresentationThemeApplicationService(themeRegistry))
+            );
     private final SprintReviewArtifactMapper sprintReviewArtifactMapper = new SprintReviewArtifactMapper(
             new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules(),
             new com.willmear.sprint.artifact.application.support.SprintReviewMarkdownRenderer()
@@ -37,7 +64,10 @@ class PresentationDeckApplicationServiceTest {
             presentationDeckMapper,
             artifactService,
             artifactToSprintReviewMapper,
-            new SprintReviewToPresentationDeckMapper()
+            new SprintReviewToPresentationDeckMapper(
+                    presentationPlanApplicationService,
+                    presentationPlanToPresentationDeckMapper
+            )
     );
 
     @Test
@@ -47,7 +77,10 @@ class PresentationDeckApplicationServiceTest {
                 workspaceId,
                 SprintReviewToPresentationDeckMapper.SPRINT_REFERENCE_TYPE,
                 "42"
-        )).thenReturn(Optional.of(presentationDeckMapper.toEntity(new SprintReviewToPresentationDeckMapper().toDeck(TestSprintReviewFactory.artifact(), TestSprintReviewFactory.review(workspaceId, 42L, "DIRECT")))));
+        )).thenReturn(Optional.of(presentationDeckMapper.toEntity(new SprintReviewToPresentationDeckMapper(
+                presentationPlanApplicationService,
+                presentationPlanToPresentationDeckMapper
+        ).toDeck(TestSprintReviewFactory.artifact(), TestSprintReviewFactory.review(workspaceId, 42L, "DIRECT")))));
 
         var deck = createDeckFromSprintReviewUseCase.createOrGet(workspaceId, 42L);
 
@@ -75,6 +108,7 @@ class PresentationDeckApplicationServiceTest {
         var deck = createDeckFromSprintReviewUseCase.createOrGet(workspaceId, 42L);
 
         assertThat(deck.title()).contains("Sprint Review Deck");
-        assertThat(deck.slides()).hasSize(6);
+        assertThat(deck.slides()).hasSize(9);
+        assertThat(deck.slides().stream().filter(slide -> slide.templateType() == SlideTemplateType.SECTION_DIVIDER)).hasSize(3);
     }
 }

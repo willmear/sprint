@@ -41,10 +41,11 @@ public class AddSlideUseCase {
         slide.setSpeakerNotes(null);
         slide.setSectionLabel(request.sectionLabel());
         slide.setLayoutType(request.layoutType() != null ? request.layoutType() : SlideLayoutType.TITLE_AND_BULLETS);
+        slide.setTemplateType(null);
         slide.setHidden(false);
         slide.setElements(List.of(
                 textElement(slide, 0, SlideElementRole.TITLE, "New slide", 96.0, 74.0, 1088.0, 72.0, 30, true, false, TextAlignment.LEFT),
-                textElement(slide, 1, SlideElementRole.BODY, "Add your bullet points here.", 96.0, 188.0, 720.0, 240.0, 22, false, false, TextAlignment.LEFT)
+                textElement(slide, 1, SlideElementRole.BODY_BULLETS, "Add your bullet points here.", 96.0, 188.0, 720.0, 240.0, 22, false, false, TextAlignment.LEFT)
         ));
         deck.getSlides().add(slide);
         return presentationDeckMapper.toDomain(presentationDeckRepository.save(deck));
@@ -74,11 +75,14 @@ public class AddSlideUseCase {
         element.setY(y);
         element.setWidth(width);
         element.setHeight(height);
+        element.setZIndex(order);
         element.setFontFamily("Aptos");
         element.setFontSize(fontSize);
         element.setBold(bold);
         element.setItalic(italic);
+        element.setUnderline(false);
         element.setTextAlignment(alignment);
+        element.setHidden(false);
         return element;
     }
 }

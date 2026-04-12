@@ -5,8 +5,11 @@ import com.willmear.sprint.TestSprintReviewFactory;
 import com.willmear.sprint.ai.domain.model.AiPrompt;
 import com.willmear.sprint.ai.domain.model.AiResponse;
 import com.willmear.sprint.ai.domain.model.TokenUsage;
+import com.willmear.sprint.ai.model.PresentationPlanAiResponse;
 import com.willmear.sprint.ai.model.SprintReviewAiResponse;
 import com.willmear.sprint.ai.parser.AiJsonContentExtractor;
+import com.willmear.sprint.ai.parser.PresentationPlanParser;
+import com.willmear.sprint.ai.prompt.builder.PresentationPlanPromptBuilder;
 import com.willmear.sprint.ai.parser.SprintReviewParser;
 import com.willmear.sprint.ai.prompt.builder.SprintPromptCompressionService;
 import com.willmear.sprint.ai.prompt.builder.SprintReviewPromptBuilder;
@@ -91,5 +94,49 @@ class AiParsingAndPromptBuilderTest {
 
         assertThatThrownBy(() -> builder.build(null, null, null, null))
                 .isInstanceOf(AiPromptBuildException.class);
+    }
+
+    @Test
+    void shouldBuildAndParseStructuredPresentationPlanPayload() {
+        PresentationPlanPromptBuilder builder = new PresentationPlanPromptBuilder(objectMapper);
+        AiPrompt prompt = builder.build(TestSprintReviewFactory.reviewWithHighlight(), "gpt-test");
+
+        assertThat(prompt.responseFormat()).isEqualTo("json-object");
+        assertThat(prompt.userPrompt()).contains("\"slideIntent\": \"TITLE|OVERVIEW|THEMES|HIGHLIGHTS|METRICS|BLOCKERS|CLOSING\"");
+        assertThat(prompt.userPrompt()).contains("Prefer 3-5 bullets per slide");
+        assertThat(prompt.userPrompt()).contains("CLOSING_NOTE");
+
+        AiResponse response = new AiResponse("""
+                {
+                  "title": "Sprint Review Deck",
+                  "subtitle": "Sprint 42",
+                  "slides": [
+                    {
+                      "slideIntent": "TITLE",
+                      "title": "Sprint 42 Review",
+                      "subtitle": "Overview",
+                      "layoutHint": "TITLE_ONLY",
+                      "blocks": [
+                        {
+                          "blockType": "SUBTITLE",
+                          "text": "Overview",
+                          "items": [],
+                          "visualPriority": "SECONDARY"
+                        }
+                      ],
+                      "speakerNotes": "Open with goals"
+                    }
+                  ]
+                }
+                """, "gpt-test", null, Instant.now(), "stop", true, null);
+
+        PresentationPlanAiResponse parsed = new PresentationPlanParser(objectMapper, extractor).parse(response);
+
+        assertThat(parsed.title()).isEqualTo("Sprint Review Deck");
+        assertThat(parsed.slides()).singleElement().satisfies(slide -> {
+            assertThat(slide.slideIntent()).isEqualTo("TITLE");
+            assertThat(slide.blocks()).singleElement().satisfies(block ->
+                    assertThat(block.blockType()).isEqualTo("SUBTITLE"));
+        });
     }
 }

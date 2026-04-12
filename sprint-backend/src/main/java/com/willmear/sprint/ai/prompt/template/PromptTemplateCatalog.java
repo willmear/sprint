@@ -12,6 +12,7 @@ public final class PromptTemplateCatalog {
             case "sprint-highlights" -> "You are a delivery review assistant. Produce concrete sprint highlights in structured JSON.";
             case "sprint-blockers" -> "You are a delivery risk assistant. Produce concrete sprint blockers or risks in structured JSON.";
             case "sprint-speaker-notes" -> "You are a presentation assistant. Produce concise speaker notes for a sprint review.";
+            case "presentation-plan" -> "You are a presentation strategist. Produce a structured slide plan grounded in sprint review content.";
             default -> "You are a helpful assistant.";
         };
     }
@@ -23,6 +24,7 @@ public final class PromptTemplateCatalog {
             case "sprint-highlights" -> "Generate structured sprint highlights from the following sprint context.";
             case "sprint-blockers" -> "Generate structured sprint blockers from the following sprint context.";
             case "sprint-speaker-notes" -> "Generate structured speaker notes from the following sprint context.";
+            case "presentation-plan" -> "Generate a structured presentation plan from the following sprint review.";
             default -> "Process the following input.";
         };
     }

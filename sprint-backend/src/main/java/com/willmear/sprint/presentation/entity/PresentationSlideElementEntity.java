@@ -3,6 +3,7 @@ package com.willmear.sprint.presentation.entity;
 import com.willmear.sprint.persistence.entity.AuditableEntity;
 import com.willmear.sprint.presentation.domain.SlideElementRole;
 import com.willmear.sprint.presentation.domain.SlideElementType;
+import com.willmear.sprint.presentation.domain.ShapeType;
 import com.willmear.sprint.presentation.domain.TextAlignment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,10 +48,28 @@ public class PresentationSlideElementEntity extends AuditableEntity {
     @Column(name = "height_px", nullable = false)
     private Double height;
 
-    @Column(name = "font_family", nullable = false, length = 120)
+    @Column(name = "z_index", nullable = false)
+    private Integer zIndex;
+
+    @Column(name = "rotation_degrees")
+    private Double rotationDegrees;
+
+    @Column(name = "fill_color", length = 20)
+    private String fillColor;
+
+    @Column(name = "border_color", length = 20)
+    private String borderColor;
+
+    @Column(name = "border_width")
+    private Integer borderWidth;
+
+    @Column(name = "text_color", length = 20)
+    private String textColor;
+
+    @Column(name = "font_family", length = 120)
     private String fontFamily;
 
-    @Column(name = "font_size", nullable = false)
+    @Column(name = "font_size")
     private Integer fontSize;
 
     @Column(name = "is_bold", nullable = false)
@@ -59,9 +78,19 @@ public class PresentationSlideElementEntity extends AuditableEntity {
     @Column(name = "is_italic", nullable = false)
     private boolean italic;
 
+    @Column(name = "is_underline", nullable = false)
+    private boolean underline;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "text_alignment", nullable = false, length = 20)
+    @Column(name = "text_alignment", length = 20)
     private TextAlignment textAlignment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "shape_type", length = 40)
+    private ShapeType shapeType;
+
+    @Column(name = "hidden", nullable = false)
+    private boolean hidden;
 
     public PresentationSlideEntity getSlide() {
         return slide;
@@ -135,6 +164,54 @@ public class PresentationSlideElementEntity extends AuditableEntity {
         this.height = height;
     }
 
+    public Integer getZIndex() {
+        return zIndex;
+    }
+
+    public void setZIndex(Integer zIndex) {
+        this.zIndex = zIndex;
+    }
+
+    public Double getRotationDegrees() {
+        return rotationDegrees;
+    }
+
+    public void setRotationDegrees(Double rotationDegrees) {
+        this.rotationDegrees = rotationDegrees;
+    }
+
+    public String getFillColor() {
+        return fillColor;
+    }
+
+    public void setFillColor(String fillColor) {
+        this.fillColor = fillColor;
+    }
+
+    public String getBorderColor() {
+        return borderColor;
+    }
+
+    public void setBorderColor(String borderColor) {
+        this.borderColor = borderColor;
+    }
+
+    public Integer getBorderWidth() {
+        return borderWidth;
+    }
+
+    public void setBorderWidth(Integer borderWidth) {
+        this.borderWidth = borderWidth;
+    }
+
+    public String getTextColor() {
+        return textColor;
+    }
+
+    public void setTextColor(String textColor) {
+        this.textColor = textColor;
+    }
+
     public String getFontFamily() {
         return fontFamily;
     }
@@ -167,11 +244,35 @@ public class PresentationSlideElementEntity extends AuditableEntity {
         this.italic = italic;
     }
 
+    public boolean isUnderline() {
+        return underline;
+    }
+
+    public void setUnderline(boolean underline) {
+        this.underline = underline;
+    }
+
     public TextAlignment getTextAlignment() {
         return textAlignment;
     }
 
     public void setTextAlignment(TextAlignment textAlignment) {
         this.textAlignment = textAlignment;
+    }
+
+    public ShapeType getShapeType() {
+        return shapeType;
+    }
+
+    public void setShapeType(ShapeType shapeType) {
+        this.shapeType = shapeType;
+    }
+
+    public boolean isHidden() {
+        return hidden;
+    }
+
+    public void setHidden(boolean hidden) {
+        this.hidden = hidden;
     }
 }

@@ -36,6 +36,13 @@ public class ReorderSlidesUseCase {
         if (!deck.getSlides().stream().map(slide -> slide.getId()).allMatch(requestedIds::contains)) {
             throw new InvalidSlideOrderException("Reorder request includes unknown slide ids.");
         }
+
+        int temporaryOffset = deck.getSlides().size() + 100;
+        for (var slide : deck.getSlides()) {
+            slide.setSlideOrder(slide.getSlideOrder() + temporaryOffset);
+        }
+        presentationDeckRepository.saveAndFlush(deck);
+
         for (int index = 0; index < request.slideIds().size(); index++) {
             UUID slideId = request.slideIds().get(index);
             for (var slide : deck.getSlides()) {

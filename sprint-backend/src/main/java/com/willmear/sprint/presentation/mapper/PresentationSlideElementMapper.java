@@ -24,11 +24,20 @@ public class PresentationSlideElementMapper {
                 entity.getY(),
                 entity.getWidth(),
                 entity.getHeight(),
+                entity.getZIndex(),
+                entity.getRotationDegrees(),
+                entity.getFillColor(),
+                entity.getBorderColor(),
+                entity.getBorderWidth(),
+                entity.getTextColor(),
                 entity.getFontFamily(),
                 entity.getFontSize(),
                 entity.isBold(),
                 entity.isItalic(),
+                entity.isUnderline(),
                 entity.getTextAlignment(),
+                entity.getShapeType(),
+                entity.isHidden(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -46,11 +55,20 @@ public class PresentationSlideElementMapper {
                 element.y(),
                 element.width(),
                 element.height(),
+                element.zIndex(),
+                element.rotationDegrees(),
+                element.fillColor(),
+                element.borderColor(),
+                element.borderWidth(),
+                element.textColor(),
                 element.fontFamily(),
                 element.fontSize(),
                 element.bold(),
                 element.italic(),
-                element.textAlignment().name(),
+                element.underline(),
+                element.textAlignment() == null ? null : element.textAlignment().name(),
+                element.shapeType() == null ? null : element.shapeType().name(),
+                element.hidden(),
                 element.createdAt(),
                 element.updatedAt()
         );
@@ -68,11 +86,20 @@ public class PresentationSlideElementMapper {
         entity.setY(element.y());
         entity.setWidth(element.width());
         entity.setHeight(element.height());
+        entity.setZIndex(element.zIndex() == null ? element.elementOrder() : element.zIndex());
+        entity.setRotationDegrees(element.rotationDegrees());
+        entity.setFillColor(element.fillColor());
+        entity.setBorderColor(element.borderColor());
+        entity.setBorderWidth(element.borderWidth());
+        entity.setTextColor(element.textColor());
         entity.setFontFamily(element.fontFamily());
         entity.setFontSize(element.fontSize());
         entity.setBold(element.bold());
         entity.setItalic(element.italic());
+        entity.setUnderline(element.underline());
         entity.setTextAlignment(element.textAlignment());
+        entity.setShapeType(element.shapeType());
+        entity.setHidden(element.hidden());
         entity.setCreatedAt(element.createdAt());
         entity.setUpdatedAt(element.updatedAt());
         return entity;
@@ -90,11 +117,20 @@ public class PresentationSlideElementMapper {
                 request.y(),
                 request.width(),
                 request.height(),
+                request.zIndex() == null ? elementOrder : request.zIndex(),
+                request.rotationDegrees(),
+                request.fillColor(),
+                request.borderColor(),
+                request.borderWidth(),
+                request.textColor(),
                 request.fontFamily(),
                 request.fontSize(),
                 Boolean.TRUE.equals(request.bold()),
                 Boolean.TRUE.equals(request.italic()),
+                Boolean.TRUE.equals(request.underline()),
                 request.textAlignment(),
+                request.shapeType(),
+                Boolean.TRUE.equals(request.hidden()),
                 null,
                 null
         );
@@ -112,11 +148,20 @@ public class PresentationSlideElementMapper {
                 request.y(),
                 request.width(),
                 request.height(),
+                request.zIndex() == null ? elementOrder : request.zIndex(),
+                request.rotationDegrees(),
+                request.fillColor(),
+                request.borderColor(),
+                request.borderWidth(),
+                request.textColor(),
                 request.fontFamily(),
                 request.fontSize(),
                 Boolean.TRUE.equals(request.bold()),
                 Boolean.TRUE.equals(request.italic()),
+                Boolean.TRUE.equals(request.underline()),
                 request.textAlignment(),
+                request.shapeType(),
+                Boolean.TRUE.equals(request.hidden()),
                 null,
                 null
         );

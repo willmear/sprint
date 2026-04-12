@@ -1,5 +1,6 @@
 package com.willmear.sprint.presentation.domain;
 
+import com.willmear.sprint.presentation.template.SlideTemplateType;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +15,11 @@ public record PresentationSlide(
         String bodyText,
         String speakerNotes,
         String sectionLabel,
+        String backgroundColor,
+        BackgroundStyleType backgroundStyleType,
+        boolean showGrid,
         SlideLayoutType layoutType,
+        SlideTemplateType templateType,
         List<PresentationSlideElement> elements,
         boolean hidden,
         Instant createdAt,

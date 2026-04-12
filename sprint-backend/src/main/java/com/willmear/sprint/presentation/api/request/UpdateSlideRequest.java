@@ -1,8 +1,10 @@
 package com.willmear.sprint.presentation.api.request;
 
 import com.willmear.sprint.presentation.domain.SlideLayoutType;
+import com.willmear.sprint.presentation.domain.BackgroundStyleType;
 import com.willmear.sprint.presentation.domain.SlideElementRole;
 import com.willmear.sprint.presentation.domain.SlideElementType;
+import com.willmear.sprint.presentation.domain.ShapeType;
 import com.willmear.sprint.presentation.domain.SlideType;
 import com.willmear.sprint.presentation.domain.TextAlignment;
 import jakarta.validation.Valid;
@@ -17,7 +19,11 @@ public record UpdateSlideRequest(
         String bodyText,
         String speakerNotes,
         String sectionLabel,
+        String backgroundColor,
+        BackgroundStyleType backgroundStyleType,
+        Boolean showGrid,
         @NotNull SlideLayoutType layoutType,
+        com.willmear.sprint.presentation.template.SlideTemplateType templateType,
         @NotNull @Valid List<UpdateSlideElementRequest> elements,
         Boolean hidden
 ) {
@@ -25,16 +31,25 @@ public record UpdateSlideRequest(
             java.util.UUID id,
             @NotNull SlideElementType elementType,
             @NotNull SlideElementRole role,
-            @NotBlank String textContent,
+            String textContent,
             @NotNull Double x,
             @NotNull Double y,
             @NotNull Double width,
             @NotNull Double height,
-            @NotBlank String fontFamily,
-            @NotNull Integer fontSize,
+            Integer zIndex,
+            Double rotationDegrees,
+            String fillColor,
+            String borderColor,
+            Integer borderWidth,
+            String textColor,
+            String fontFamily,
+            Integer fontSize,
             Boolean bold,
             Boolean italic,
-            @NotNull TextAlignment textAlignment
+            Boolean underline,
+            TextAlignment textAlignment,
+            ShapeType shapeType,
+            Boolean hidden
     ) {
     }
 }

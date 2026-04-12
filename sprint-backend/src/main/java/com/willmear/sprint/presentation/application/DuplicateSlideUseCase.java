@@ -56,6 +56,7 @@ public class DuplicateSlideUseCase {
         duplicate.setSpeakerNotes(source.getSpeakerNotes());
         duplicate.setSectionLabel(source.getSectionLabel());
         duplicate.setLayoutType(source.getLayoutType());
+        duplicate.setTemplateType(source.getTemplateType());
         duplicate.setHidden(source.isHidden());
         duplicate.setElements(source.getElements().stream()
                 .map(element -> duplicateElement(duplicate, element))

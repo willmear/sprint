@@ -9,12 +9,19 @@ import com.willmear.sprint.ai.domain.model.AiResponse;
 import com.willmear.sprint.ai.domain.model.AiRun;
 import com.willmear.sprint.ai.domain.model.TokenUsage;
 import com.willmear.sprint.ai.domain.service.AiResponseValidator;
+import com.willmear.sprint.ai.model.PresentationPlanAiResponse;
+import com.willmear.sprint.ai.model.PresentationPlanBlockAiResponse;
+import com.willmear.sprint.ai.model.PresentationPlanSlideAiResponse;
 import com.willmear.sprint.ai.model.SpeakerNoteAiResponse;
 import com.willmear.sprint.ai.model.SprintBlockerAiResponse;
 import com.willmear.sprint.ai.model.SprintHighlightAiResponse;
 import com.willmear.sprint.ai.model.SprintReviewAiResponse;
 import com.willmear.sprint.ai.model.SprintSummaryAiResponse;
 import com.willmear.sprint.ai.model.SprintThemeAiResponse;
+import com.willmear.sprint.ai.parser.PresentationPlanParser;
+import com.willmear.sprint.ai.prompt.builder.PresentationPlanPromptBuilder;
+import com.willmear.sprint.config.OpenAiProperties;
+import com.willmear.sprint.presentationplan.application.GeneratePresentationPlanUseCase;
 import com.willmear.sprint.ai.parser.SprintReviewParser;
 import com.willmear.sprint.ai.prompt.builder.SprintReviewPromptBuilder;
 import java.time.Instant;
@@ -60,6 +67,44 @@ class AiUseCasesAndFacadeTest {
         assertThat(result.highlights()).hasSize(1);
         assertThat(result.blockers()).hasSize(1);
         assertThat(result.speakerNotes()).hasSize(1);
+    }
+
+    @Test
+    void shouldCreateStructuredGenerationRequestForPresentationPlan() {
+        AiGenerationService aiGenerationService = mock(AiGenerationService.class);
+        PresentationPlanPromptBuilder promptBuilder = mock(PresentationPlanPromptBuilder.class);
+        PresentationPlanParser parser = mock(PresentationPlanParser.class);
+        OpenAiProperties openAiProperties = new OpenAiProperties(true, false, "", "", "", "", "gpt-test", "", java.time.Duration.ofSeconds(30), 900, 0.2);
+        GeneratePresentationPlanUseCase useCase = new GeneratePresentationPlanUseCase(aiGenerationService, promptBuilder, parser, openAiProperties);
+        var review = TestSprintReviewFactory.reviewWithHighlight();
+        AiPrompt prompt = new AiPrompt("presentation-plan", "v1", "system", "user", "json-object", Map.of());
+        PresentationPlanAiResponse payload = new PresentationPlanAiResponse(
+                "Deck",
+                "Subtitle",
+                List.of(new PresentationPlanSlideAiResponse(
+                        "TITLE",
+                        "Sprint Review",
+                        "Subtitle",
+                        "TITLE_ONLY",
+                        List.of(new PresentationPlanBlockAiResponse("SUBTITLE", "Overview", List.of(), "SECONDARY")),
+                        "Open strong"
+                ))
+        );
+
+        when(promptBuilder.build(review, "gpt-test")).thenReturn(prompt);
+        when(aiGenerationService.generate(any(AiGenerationRequest.class), any()))
+                .thenReturn(new AiGenerationResult<>(payload, aiResponse(), aiRun("presentation-plan")));
+
+        var result = useCase.generate(review.workspaceId(), "SPRINT", String.valueOf(review.externalSprintId()), review);
+
+        ArgumentCaptor<AiGenerationRequest> requestCaptor = ArgumentCaptor.forClass(AiGenerationRequest.class);
+        verify(aiGenerationService).generate(requestCaptor.capture(), any());
+        AiGenerationRequest request = requestCaptor.getValue();
+        assertThat(request.workflowName()).isEqualTo("presentation-plan");
+        assertThat(request.promptName()).isEqualTo("presentation-plan");
+        assertThat(request.structuredOutputExpected()).isTrue();
+        assertThat(result.slides()).singleElement().satisfies(slide ->
+                assertThat(slide.title()).isEqualTo("Sprint Review"));
     }
 
     private static SprintReviewAiResponse payload() {

@@ -9,7 +9,11 @@ import java.util.UUID;
 
 public interface PresentationDeckService {
 
-    PresentationDeck createOrGetDeck(UUID workspaceId, Long sprintId);
+    default PresentationDeck createOrGetDeck(UUID workspaceId, Long sprintId) {
+        return createOrGetDeck(workspaceId, sprintId, null);
+    }
+
+    PresentationDeck createOrGetDeck(UUID workspaceId, Long sprintId, String themeId);
 
     PresentationDeck getLatestDeckForSprint(UUID workspaceId, Long sprintId);
 

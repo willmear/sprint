@@ -34,6 +34,9 @@ public class PresentationDeckEntity extends AuditableEntity {
     @Column(length = 255)
     private String subtitle;
 
+    @Column(name = "theme_id", length = 100)
+    private String themeId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private DeckStatus status;
@@ -84,6 +87,14 @@ public class PresentationDeckEntity extends AuditableEntity {
 
     public void setSubtitle(String subtitle) {
         this.subtitle = subtitle;
+    }
+
+    public String getThemeId() {
+        return themeId;
+    }
+
+    public void setThemeId(String themeId) {
+        this.themeId = themeId;
     }
 
     public DeckStatus getStatus() {

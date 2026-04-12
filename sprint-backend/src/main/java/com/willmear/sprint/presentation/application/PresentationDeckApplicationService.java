@@ -45,8 +45,8 @@ public class PresentationDeckApplicationService implements PresentationDeckServi
     }
 
     @Override
-    public PresentationDeck createOrGetDeck(UUID workspaceId, Long sprintId) {
-        return createDeckFromSprintReviewUseCase.createOrGet(workspaceId, sprintId);
+    public PresentationDeck createOrGetDeck(UUID workspaceId, Long sprintId, String themeId) {
+        return createDeckFromSprintReviewUseCase.createOrGet(workspaceId, sprintId, themeId);
     }
 
     @Override

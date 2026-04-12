@@ -8,6 +8,7 @@ public final class PromptVersionRegistry {
     public static final String SPRINT_HIGHLIGHTS_VERSION = "v1";
     public static final String SPRINT_BLOCKERS_VERSION = "v1";
     public static final String SPEAKER_NOTES_VERSION = "v1";
+    public static final String PRESENTATION_PLAN_VERSION = "v1";
 
     private PromptVersionRegistry() {
     }

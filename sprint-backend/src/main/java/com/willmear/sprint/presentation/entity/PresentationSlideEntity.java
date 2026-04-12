@@ -2,8 +2,10 @@ package com.willmear.sprint.presentation.entity;
 
 import com.willmear.sprint.persistence.converter.StringListConverter;
 import com.willmear.sprint.persistence.entity.AuditableEntity;
+import com.willmear.sprint.presentation.domain.BackgroundStyleType;
 import com.willmear.sprint.presentation.domain.SlideLayoutType;
 import com.willmear.sprint.presentation.domain.SlideType;
+import com.willmear.sprint.presentation.template.SlideTemplateType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -50,9 +52,23 @@ public class PresentationSlideEntity extends AuditableEntity {
     @Column(name = "section_label", length = 100)
     private String sectionLabel;
 
+    @Column(name = "background_color", length = 20)
+    private String backgroundColor;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "background_style_type", length = 30)
+    private BackgroundStyleType backgroundStyleType;
+
+    @Column(name = "show_grid", nullable = false)
+    private boolean showGrid;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "layout_type", nullable = false, length = 50)
     private SlideLayoutType layoutType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "template_type", length = 50)
+    private SlideTemplateType templateType;
 
     @Column(nullable = false)
     private boolean hidden;
@@ -132,6 +148,38 @@ public class PresentationSlideEntity extends AuditableEntity {
 
     public void setLayoutType(SlideLayoutType layoutType) {
         this.layoutType = layoutType;
+    }
+
+    public String getBackgroundColor() {
+        return backgroundColor;
+    }
+
+    public void setBackgroundColor(String backgroundColor) {
+        this.backgroundColor = backgroundColor;
+    }
+
+    public BackgroundStyleType getBackgroundStyleType() {
+        return backgroundStyleType;
+    }
+
+    public void setBackgroundStyleType(BackgroundStyleType backgroundStyleType) {
+        this.backgroundStyleType = backgroundStyleType;
+    }
+
+    public boolean isShowGrid() {
+        return showGrid;
+    }
+
+    public void setShowGrid(boolean showGrid) {
+        this.showGrid = showGrid;
+    }
+
+    public SlideTemplateType getTemplateType() {
+        return templateType;
+    }
+
+    public void setTemplateType(SlideTemplateType templateType) {
+        this.templateType = templateType;
     }
 
     public boolean isHidden() {

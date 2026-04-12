@@ -2,6 +2,7 @@ package com.willmear.sprint.export.application;
 
 import com.willmear.sprint.export.domain.ExportFormat;
 import com.willmear.sprint.export.domain.ExportPayload;
+import com.willmear.sprint.export.domain.BinaryExportPayload;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,14 @@ class ExportApplicationServiceTest {
 
     private final ExportArtifactUseCase exportArtifactUseCase = mock(ExportArtifactUseCase.class);
     private final ExportLatestSprintReviewUseCase exportLatestSprintReviewUseCase = mock(ExportLatestSprintReviewUseCase.class);
-    private final ExportApplicationService service = new ExportApplicationService(exportArtifactUseCase, exportLatestSprintReviewUseCase);
+    private final ExportPresentationDeckAsPowerPointUseCase exportPresentationDeckAsPowerPointUseCase = mock(ExportPresentationDeckAsPowerPointUseCase.class);
+    private final ExportLatestDeckForSprintUseCase exportLatestDeckForSprintUseCase = mock(ExportLatestDeckForSprintUseCase.class);
+    private final ExportApplicationService service = new ExportApplicationService(
+            exportArtifactUseCase,
+            exportLatestSprintReviewUseCase,
+            exportPresentationDeckAsPowerPointUseCase,
+            exportLatestDeckForSprintUseCase
+    );
 
     @Test
     void shouldExportLatestSprintReview() {
@@ -39,5 +47,24 @@ class ExportApplicationServiceTest {
 
         assertThat(result).isEqualTo(expected);
         verify(exportArtifactUseCase).export(artifactId, ExportFormat.SPEAKER_NOTES);
+    }
+
+    @Test
+    void shouldExportPresentationDeckAsPowerPoint() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID deckId = UUID.randomUUID();
+        BinaryExportPayload expected = new BinaryExportPayload(
+                ExportFormat.POWERPOINT,
+                "deck.pptx",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                new byte[]{1, 2, 3},
+                Instant.now()
+        );
+        when(exportPresentationDeckAsPowerPointUseCase.export(workspaceId, deckId)).thenReturn(expected);
+
+        BinaryExportPayload result = service.exportPresentationDeckAsPowerPoint(workspaceId, deckId);
+
+        assertThat(result).isEqualTo(expected);
+        verify(exportPresentationDeckAsPowerPointUseCase).export(workspaceId, deckId);
     }
 }

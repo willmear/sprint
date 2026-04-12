@@ -1,10 +1,15 @@
 package com.willmear.sprint.presentation.mapper;
 
 import com.willmear.sprint.presentation.api.request.UpdateDeckRequest;
+import com.willmear.sprint.presentation.api.response.ColorPaletteResponse;
 import com.willmear.sprint.presentation.api.response.PresentationDeckResponse;
+import com.willmear.sprint.presentation.api.response.PresentationThemeSummaryResponse;
+import com.willmear.sprint.presentation.api.response.TypographyScaleResponse;
 import com.willmear.sprint.presentation.domain.PresentationDeck;
 import com.willmear.sprint.presentation.entity.PresentationDeckEntity;
 import com.willmear.sprint.presentation.entity.PresentationSlideEntity;
+import com.willmear.sprint.presentation.theme.domain.PresentationTheme;
+import com.willmear.sprint.presentation.theme.registry.ThemeRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -13,9 +18,11 @@ import org.springframework.stereotype.Component;
 public class PresentationDeckMapper {
 
     private final PresentationSlideMapper presentationSlideMapper;
+    private final ThemeRegistry themeRegistry;
 
-    public PresentationDeckMapper(PresentationSlideMapper presentationSlideMapper) {
+    public PresentationDeckMapper(PresentationSlideMapper presentationSlideMapper, ThemeRegistry themeRegistry) {
         this.presentationSlideMapper = presentationSlideMapper;
+        this.themeRegistry = themeRegistry;
     }
 
     public PresentationDeck toDomain(PresentationDeckEntity entity) {
@@ -26,6 +33,7 @@ public class PresentationDeckMapper {
                 entity.getReferenceId(),
                 entity.getTitle(),
                 entity.getSubtitle(),
+                entity.getThemeId(),
                 entity.getStatus(),
                 entity.getSlides().stream().map(presentationSlideMapper::toDomain).toList(),
                 entity.getSourceArtifactId(),
@@ -35,6 +43,7 @@ public class PresentationDeckMapper {
     }
 
     public PresentationDeckResponse toResponse(PresentationDeck deck) {
+        PresentationTheme theme = themeRegistry.resolve(deck.themeId());
         return new PresentationDeckResponse(
                 deck.id(),
                 deck.workspaceId(),
@@ -42,6 +51,30 @@ public class PresentationDeckMapper {
                 deck.referenceId(),
                 deck.title(),
                 deck.subtitle(),
+                deck.themeId(),
+                theme.displayName(),
+                new PresentationThemeSummaryResponse(
+                        theme.themeId(),
+                        theme.displayName(),
+                        new ColorPaletteResponse(
+                                theme.colorPalette().background(),
+                                theme.colorPalette().surface(),
+                                theme.colorPalette().textPrimary(),
+                                theme.colorPalette().textSecondary(),
+                                theme.colorPalette().accent(),
+                                theme.colorPalette().accentSecondary(),
+                                theme.colorPalette().danger(),
+                                theme.colorPalette().mutedBorder()
+                        ),
+                        new TypographyScaleResponse(
+                                theme.typography().titleFontFamily(),
+                                theme.typography().bodyFontFamily(),
+                                theme.typography().titleFontSize(),
+                                theme.typography().subtitleFontSize(),
+                                theme.typography().bodyFontSize(),
+                                theme.typography().smallFontSize()
+                        )
+                ),
                 deck.status().name(),
                 deck.sourceArtifactId(),
                 deck.slides().stream().map(presentationSlideMapper::toResponse).toList(),
@@ -58,6 +91,7 @@ public class PresentationDeckMapper {
         entity.setReferenceId(deck.referenceId());
         entity.setTitle(deck.title());
         entity.setSubtitle(deck.subtitle());
+        entity.setThemeId(deck.themeId());
         entity.setStatus(deck.status());
         entity.setSourceArtifactId(deck.sourceArtifactId());
         entity.setCreatedAt(deck.createdAt());
@@ -82,6 +116,7 @@ public class PresentationDeckMapper {
                 existing.getReferenceId(),
                 request.title(),
                 request.subtitle(),
+                request.themeId() == null || request.themeId().isBlank() ? existing.getThemeId() : request.themeId(),
                 request.status(),
                 slides,
                 existing.getSourceArtifactId(),

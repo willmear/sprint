@@ -104,5 +104,10 @@ app:
     log-request-start: ${APP_OBSERVABILITY_LOG_REQUEST_START:true}
     log-request-end: ${APP_OBSERVABILITY_LOG_REQUEST_END:true}
     metrics-enabled: ${APP_OBSERVABILITY_METRICS_ENABLED:true}
+  presentation:
+    default-theme-id: ${APP_PRESENTATION_DEFAULT_THEME_ID:corporate-clean}
+    ai:
+      use-ai-planning: ${APP_PRESENTATION_AI_USE_AI_PLANNING:true}
+      fallback-to-deterministic: ${APP_PRESENTATION_AI_FALLBACK_TO_DETERMINISTIC:true}
   ui:
     allowed-origin: ${APP_UI_ALLOWED_ORIGIN:http://localhost:3000}

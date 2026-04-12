@@ -34,7 +34,11 @@ public class PresentationSlideMapper {
                 entity.getBodyText(),
                 entity.getSpeakerNotes(),
                 entity.getSectionLabel(),
+                entity.getBackgroundColor(),
+                entity.getBackgroundStyleType(),
+                entity.isShowGrid(),
                 entity.getLayoutType(),
+                entity.getTemplateType(),
                 entity.getElements().stream().map(presentationSlideElementMapper::toDomain).toList(),
                 entity.isHidden(),
                 entity.getCreatedAt(),
@@ -53,7 +57,11 @@ public class PresentationSlideMapper {
                 slide.bodyText(),
                 slide.speakerNotes(),
                 slide.sectionLabel(),
+                slide.backgroundColor(),
+                slide.backgroundStyleType() == null ? null : slide.backgroundStyleType().name(),
+                slide.showGrid(),
                 slide.layoutType().name(),
+                slide.templateType() == null ? null : slide.templateType().name(),
                 slide.elements().stream().map(presentationSlideElementMapper::toResponse).toList(),
                 slide.hidden(),
                 slide.createdAt(),
@@ -72,7 +80,11 @@ public class PresentationSlideMapper {
         entity.setBodyText(slide.bodyText());
         entity.setSpeakerNotes(slide.speakerNotes());
         entity.setSectionLabel(slide.sectionLabel());
+        entity.setBackgroundColor(slide.backgroundColor());
+        entity.setBackgroundStyleType(slide.backgroundStyleType());
+        entity.setShowGrid(slide.showGrid());
         entity.setLayoutType(slide.layoutType());
+        entity.setTemplateType(slide.templateType());
         List<PresentationSlideElementEntity> elements = new ArrayList<>();
         for (PresentationSlideElement element : slide.elements()) {
             elements.add(presentationSlideElementMapper.toEntity(entity, element));
@@ -99,7 +111,11 @@ public class PresentationSlideMapper {
                 request.bodyText(),
                 request.speakerNotes(),
                 request.sectionLabel(),
+                request.backgroundColor(),
+                request.backgroundStyleType(),
+                Boolean.TRUE.equals(request.showGrid()),
                 request.layoutType(),
+                request.templateType(),
                 elements,
                 Boolean.TRUE.equals(request.hidden()),
                 null,
@@ -114,7 +130,11 @@ public class PresentationSlideMapper {
         entity.setBodyText(request.bodyText());
         entity.setSpeakerNotes(request.speakerNotes());
         entity.setSectionLabel(request.sectionLabel());
+        entity.setBackgroundColor(request.backgroundColor());
+        entity.setBackgroundStyleType(request.backgroundStyleType());
+        entity.setShowGrid(Boolean.TRUE.equals(request.showGrid()));
         entity.setLayoutType(request.layoutType());
+        entity.setTemplateType(request.templateType());
         List<PresentationSlideElementEntity> elements = new ArrayList<>();
         for (int index = 0; index < request.elements().size(); index++) {
             elements.add(presentationSlideElementMapper.toEntity(entity, presentationSlideElementMapper.toDomain(entity.getId(), index, request.elements().get(index))));

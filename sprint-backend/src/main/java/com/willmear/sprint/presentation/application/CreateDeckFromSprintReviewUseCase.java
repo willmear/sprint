@@ -38,6 +38,11 @@ public class CreateDeckFromSprintReviewUseCase {
 
     @Transactional
     public PresentationDeck createOrGet(UUID workspaceId, Long sprintId) {
+        return createOrGet(workspaceId, sprintId, null);
+    }
+
+    @Transactional
+    public PresentationDeck createOrGet(UUID workspaceId, Long sprintId, String themeId) {
         return presentationDeckRepository
                 .findFirstByWorkspaceIdAndReferenceTypeAndReferenceIdOrderByUpdatedAtDesc(
                         workspaceId,
@@ -45,10 +50,10 @@ public class CreateDeckFromSprintReviewUseCase {
                         sprintId.toString()
                 )
                 .map(presentationDeckMapper::toDomain)
-                .orElseGet(() -> createFromLatestReview(workspaceId, sprintId));
+                .orElseGet(() -> createFromLatestReview(workspaceId, sprintId, themeId));
     }
 
-    private PresentationDeck createFromLatestReview(UUID workspaceId, Long sprintId) {
+    private PresentationDeck createFromLatestReview(UUID workspaceId, Long sprintId, String themeId) {
         Artifact artifact = artifactService.getLatest(
                 workspaceId,
                 ArtifactType.SPRINT_REVIEW,
@@ -57,7 +62,8 @@ public class CreateDeckFromSprintReviewUseCase {
         );
         PresentationDeck initialDeck = sprintReviewToPresentationDeckMapper.toDeck(
                 artifact,
-                artifactToSprintReviewMapper.toSprintReview(artifact)
+                artifactToSprintReviewMapper.toSprintReview(artifact),
+                themeId
         );
         return presentationDeckMapper.toDomain(presentationDeckRepository.save(presentationDeckMapper.toEntity(initialDeck)));
     }
