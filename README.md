@@ -1,11 +1,12 @@
 # sprint
 
-Backend-first modular monolith scaffold for ingesting Jira sprint data, generating sprint review artifacts, and preparing future AI and retrieval integrations.
+Monorepo for syncing Jira sprint data, generating sprint reviews, exporting review artifacts, building editable presentation decks, exporting `.pptx`, shipping backend/frontend containers.
 
 ## Repo Layout
 
-- `sprint-backend/`: Spring Boot backend, Maven build, Dockerfile, and local Docker Compose stack
+- `sprint-backend/`: Spring Boot backend, Maven build, Dockerfile, compose file, DB migrations
 - `sprint-ui/`: Next.js frontend
+- `.github/workflows/ci-cd.yml`: CI/CD workflow. Build test backend, publish backend + frontend images to GHCR on non-PR runs
 
 ## Stack
 
@@ -14,123 +15,200 @@ Backend-first modular monolith scaffold for ingesting Jira sprint data, generati
 - Maven
 - PostgreSQL
 - Flyway
+- Next.js 15
+- React 19
+- Tailwind CSS
+- TanStack Query
+- Apache POI
 
 ## Module Overview
 
-- `common`: small shared primitives only
+- `common`: shared primitives only
 - `config`: framework and bean wiring
-- `api`: REST entrypoints, DTOs, and API mappers
-- `auth`: authentication boundary
-- `workspace`: workspace and tenant boundary
-- `jira`: Jira integration boundary
-- `sprintreview`: sprint review core domain
-- `ai`: LLM and prompt orchestration boundary
-- `retrieval`: retrieval and future pgvector boundary
-- `artifact`: generated artifact persistence boundary
-- `jobs`: asynchronous job processing boundary
+- `api`: REST entrypoints, DTOs, mappers
+- `auth`: app-auth boundary. Scaffolded only right now
+- `workspace`: workspace boundary
+- `jira`: Jira OAuth, connection mgmt, sprint sync, local Jira snapshot persistence
+- `sprintreview`: sprint review domain + orchestration
+- `ai`: LLM client, prompts, parsing, validation
+- `retrieval`: pgvector retrieval + sprint-context enrichment
+- `artifact`: generated artifact persistence
+- `presentationplan`: sprint review -> structured presentation plan
+- `presentation`: editable deck, slides, slide elements, themes, layout
+- `export`: markdown, outline, speaker-notes, PowerPoint export
+- `jobs`: async job framework
 - `persistence`: cross-cutting persistence support
-- `observability`: logging, metrics, and tracing scaffolding
-- `support`: development fixtures and local support placeholders
+- `observability`: correlation IDs, logs, metrics, tracing scaffolding
+- `support`: local/dev support
+
+## Current Product State
+
+- App-level auth not implemented yet. Backend currently permits all requests. Current-user service returns placeholder system user.
+- Jira OAuth wired end-to-end for workspace-scoped Jira connections.
+- Sprint sync still synchronous.
+- Sprint review generation supports direct endpoint and job entrypoint.
+- Review artifacts persist and feed export + presentation flows.
+- Slide editor exists. Users can create/open deck from latest sprint review, edit slides, reorder, duplicate, delete, add text/shape elements, save, export `.pptx`.
+- CI/CD workflow now publishes 2 GHCR images:
+  - backend: `ghcr.io/<owner>/<repo>`
+  - frontend: `ghcr.io/<owner>/<repo>-frontend`
 
 ## Persistence
 
-- PostgreSQL is the target database.
+- PostgreSQL target DB.
 - Flyway migrations live under `sprint-backend/src/main/resources/db/migration`.
-- The current schema includes `workspace`, `jira_connection`, `jira_oauth_state`, and synced Jira snapshot tables for boards, sprints, issues, comments, changelog events, and raw payloads.
-- Local datasource properties can be overridden with `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD`.
+- Schema includes:
+  - `workspace`
+  - Jira OAuth + synced Jira snapshot tables
+  - `job`
+  - persisted generated artifacts
+  - `presentation_deck`
+  - `presentation_slide`
+  - `presentation_slide_element`
+- Local datasource props override with `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
+
+## Auth Caveat
+
+- Spring Security enabled in dependencies, but current config permits all requests.
+- Current-user service still placeholder-backed.
+- README, UI copy, product planning should treat app auth as future work, not shipped feature.
 
 ## Workspace And Jira Connection Flow
 
-- Workspace endpoints: `POST /api/workspaces`, `GET /api/workspaces/{workspaceId}`, `GET /api/workspaces`
-- Jira OAuth endpoints: `POST /api/workspaces/{workspaceId}/jira/connections/oauth/start` and `GET /api/jira/oauth/callback`
-- Jira connection management endpoints: list/get/test/disconnect under `/api/workspaces/{workspaceId}/jira/connections`
-- OAuth is scaffolded with placeholder-backed URL generation and token exchange for now.
+- Workspace endpoints:
+  - `POST /api/workspaces`
+  - `GET /api/workspaces/{workspaceId}`
+  - `GET /api/workspaces`
+- Jira OAuth endpoints:
+  - `POST /api/workspaces/{workspaceId}/jira/connections/oauth/start`
+  - `GET /api/jira/oauth/callback`
+- Jira connection management under `/api/workspaces/{workspaceId}/jira/connections`
+- Jira OAuth resolves actual Jira site URL after Atlassian auth, stores account summary on connection
 
 ## Sprint Sync Flow
 
-- Sprint sync endpoint: `POST /api/workspaces/{workspaceId}/jira/connections/{connectionId}/sprints/{sprintId}/sync`
-- Local read endpoints: `GET /api/workspaces/{workspaceId}/sprints`, `GET /api/workspaces/{workspaceId}/sprints/{sprintId}`, and `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/issues`
-- Synced Jira data is stored locally for later sprint review generation.
-- Comments and changelog ingestion are scaffolded and enabled by default.
-- Raw Jira payloads are stored for future reprocessing and debugging.
-- A future step will move sprint sync orchestration onto the jobs boundary.
+- Sync endpoint: `POST /api/workspaces/{workspaceId}/jira/connections/{connectionId}/sprints/{sprintId}/sync`
+- Available-sprints endpoint: `GET /api/workspaces/{workspaceId}/jira/connections/{connectionId}/available-sprints`
+- Local read endpoints:
+  - `GET /api/workspaces/{workspaceId}/sprints`
+  - `GET /api/workspaces/{workspaceId}/sprints/{sprintId}`
+  - `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/issues`
+- Sync stores local sprint, issues, comments, changelog, raw payloads
+- Comments + changelog enabled by default
+- Sprint sync not moved to jobs yet
 
 ## Jobs Framework
 
-- A database-backed jobs framework now exists using the `job` table.
-- The scheduler polls pending jobs, claims them, and dispatches by `JobType`.
-- Current processor implementations are placeholders intended to prove dispatch and lifecycle handling.
-- Future steps will move sprint sync, sprint review generation, embeddings, and export flows onto this framework.
+- DB-backed jobs framework exists
+- Scheduler polls pending jobs, claims, dispatches by `JobType`
+- Real processors currently include:
+  - sprint review generation
+  - sprint document indexing
+- `SYNC_SPRINT` job processor still placeholder
+- Frontend has jobs page for listing + retrying failed jobs
 
 ## Sprint Review Orchestration
 
-- Sprint review orchestration now builds a `SprintContext` from synced local Jira data, including issue comments used during generation.
-- Direct generation endpoint: `POST /api/workspaces/{workspaceId}/sprints/{sprintId}/review/generate`
-- Context endpoint: `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/review/context`
-- Optional job entrypoint: `POST /api/workspaces/{workspaceId}/sprints/{sprintId}/review/generate-job`
-- Sprint review generation now uses the real OpenAI API when enabled, grounding the generated review in synced sprint tickets, statuses, and comments.
-- Placeholder generation remains available as an explicit fallback when AI is disabled or the AI path fails.
+- Sprint review builds `SprintContext` from synced local Jira data
+- Endpoints:
+  - direct generation: `POST /api/workspaces/{workspaceId}/sprints/{sprintId}/review/generate`
+  - latest persisted review: `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/review`
+  - context: `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/review/context`
+  - async job entrypoint: `POST /api/workspaces/{workspaceId}/sprints/{sprintId}/review/generate-job`
+- AI path uses OpenAI when enabled
+- Placeholder path remains fallback when AI disabled/fails
+- Generated review persists as artifact, reused by export + presentation features
 
 ## Artifact Persistence
 
-- Generated sprint reviews are now persisted as artifacts with structured JSON and rendered markdown.
-- Latest sprint review retrieval is now backed by durable artifact storage.
-- Jobs-based sprint review generation persists the same durable output path as direct generation.
-- Persisted sprint reviews can now be exported on demand as markdown, presentation outlines, and copy-ready speaker notes.
-- Editable presentation decks can now be created from persisted sprint review artifacts and saved before future PowerPoint export.
-- Retrieval/vector search remains a future step.
+- Sprint reviews persist as artifacts with structured JSON + rendered markdown
+- Latest review retrieval backed by durable artifact storage
+- Artifact endpoints support workspace-level + sprint-scoped listing/fetching
+
+## Presentation And Export
+
+- Review exports:
+  - markdown
+  - presentation outline
+  - speaker notes
+  - PowerPoint
+- Export endpoints:
+  - `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/export?format=...`
+  - `GET /api/artifacts/{artifactId}/export?format=...`
+  - `GET /api/workspaces/{workspaceId}/slides/decks/{deckId}/export/powerpoint`
+  - `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/export/powerpoint`
+- Presentation deck endpoints support:
+  - create/get latest deck for sprint
+  - fetch deck by id
+  - save deck
+  - update slide
+  - reorder slides
+  - add slide
+  - duplicate slide
+  - delete slide
+- Frontend slide editor route:
+  - `workspaces/[workspaceId]/sprints/[sprintId]/slides`
+- Current editor support:
+  - text-first slides
+  - speaker notes
+  - freeform text boxes
+  - basic shapes
+  - theme selection
+  - save/reorder/duplicate/delete
+  - `.pptx` export
 
 ## AI Module
 
-- The AI module owns the OpenAI client, sprint review prompt building, structured parsing, and validation.
-- Set `APP_OPENAI_API_KEY` to enable real OpenAI-backed sprint review generation.
-- `app.openai.mock-mode=true` keeps deterministic local development responses without live API calls.
-- Successful AI generation persists the structured sprint review through the existing artifact flow, and `GET /api/workspaces/{workspaceId}/sprints/{sprintId}/review` returns the persisted artifact-backed review.
+- Owns OpenAI client, prompt building, structured parsing, validation
+- Set `APP_OPENAI_API_KEY` for real OpenAI-backed sprint review generation
+- `APP_OPENAI_MOCK_MODE=true` keeps deterministic local responses
 
 ## Retrieval
 
-- The retrieval module now indexes synced sprint data into PostgreSQL using pgvector.
-- Sprint issues, comments, and optional sprint summary content can be embedded and searched semantically.
-- Retrieval can enrich sprint review context through a lightweight enrichment hook.
-- No separate vector database is used.
+- Uses pgvector in PostgreSQL
+- Indexes sprint issues, comments, optional sprint summary content
+- Can enrich sprint review context through retrieval hook
+- No separate vector DB
 
 ## Observability
 
-- API requests now propagate a correlation ID via `X-Correlation-Id`, which is also returned in error responses.
-- Actuator health and metrics endpoints are exposed for lightweight local operational visibility.
-- Jobs, Jira sync, sprint review generation, AI, and retrieval flows now emit focused logs and Micrometer metrics.
-- Observability remains intentionally lightweight and app-local; future tracing/export integrations can build on this foundation.
+- Correlation ID via `X-Correlation-Id`
+- Correlation ID returned in error responses too
+- Actuator health + metrics exposed
+- Logs + Micrometer metrics around jobs, sync, review generation, AI, retrieval, export
 
 ## Local Runtime
 
-- `sprint-backend/src/main/resources/docker-compose.yml` runs PostgreSQL with pgvector, the Spring Boot application, and the Next.js UI together for local development.
-- `sprint-ui/` is a separate Next.js + React + TypeScript frontend app in the same repo for workspace, Jira OAuth, sprint sync, sprint detail, sprint review, and jobs flows.
-- `sprint-backend/Dockerfile` builds the application jar in a Maven builder stage and runs it on Java 25.
-- The application reads datasource and Flyway settings from environment variables, with local defaults in `application.yml`.
-- Jira OAuth resolves the actual Jira site URL from Atlassian after login, so local runtime only needs `APP_JIRA_OAUTH_*`; older names like `APP_JIRA_BASE_URL`, `APP_JIRA_USERNAME`, and `APP_JIRA_API_TOKEN` are not used by the application.
-- The backend allows the local frontend origin via `APP_UI_ALLOWED_ORIGIN`, which defaults to `http://localhost:3000`.
+- Compose file path:
+  - `sprint-backend/src/main/resources/docker-compose.yml`
+- Compose starts:
+  - PostgreSQL with pgvector
+  - Spring Boot backend
+  - Next.js UI
+- Backend allows local frontend origin with `APP_UI_ALLOWED_ORIGIN`, default `http://localhost:3000`
+- Jira OAuth local env uses `APP_JIRA_OAUTH_*`
 
-Run the full local stack from the repo root:
+Run full stack from repo root:
 
 ```bash
 docker compose -f sprint-backend/src/main/resources/docker-compose.yml up --build
 ```
 
-Run the backend tests from the backend directory:
+Run backend tests:
 
 ```bash
 cd sprint-backend
 mvn test
 ```
 
-Run the backend app locally from the backend directory:
+Run backend locally:
 
 ```bash
 cd sprint-backend
 mvn spring-boot:run
 ```
 
-Run the frontend locally from the frontend directory:
+Run frontend locally:
 
 ```bash
 cd sprint-ui
@@ -138,21 +216,44 @@ npm install
 npm run dev
 ```
 
-Build the backend Docker image from the backend directory:
+Build backend image locally:
 
 ```bash
 cd sprint-backend
 docker build -t sprint-backend .
 ```
 
-This gives you:
-- backend API on `http://localhost:8080`
-- frontend UI on `http://localhost:3000`
+Build frontend image locally:
+
+```bash
+cd sprint-ui
+docker build -t sprint-ui .
+```
+
+Local URLs:
+
+- backend API: `http://localhost:8080`
+- frontend UI: `http://localhost:3000`
 
 ## Frontend Notes
 
-- The UI uses Next.js App Router, React, TypeScript, Tailwind CSS, and TanStack Query.
-- Frontend API calls read `NEXT_PUBLIC_API_BASE_URL`, with a local default of `http://localhost:8080` in `sprint-ui/.env.local`.
-- Review generation and display are grounded in the existing Spring Boot sprint review endpoints and render the structured summary, themes, highlights, blockers, and speaker notes returned by the backend.
-- The review page now supports one-click export and copy flows for markdown, presentation outlines, and speaker notes.
-- A new slide editor flow lets users open a deck derived from the latest sprint review, edit slides and speaker notes, reorder/add/delete slides, and save the deck for later export. PowerPoint export is planned to use these edited decks in a later step.
+- UI uses Next.js App Router, React, TypeScript, Tailwind CSS, TanStack Query
+- Frontend API base from `NEXT_PUBLIC_API_BASE_URL`, local default `http://localhost:8080`
+- Current UI covers:
+  - workspace creation + selection
+  - Jira OAuth login/logout/test
+  - sprint discovery + sync
+  - sprint detail + issue inventory
+  - sprint review generation + display
+  - export preview/copy/download
+  - jobs monitor
+  - slide editor
+
+## CI/CD
+
+- Workflow file: `.github/workflows/ci-cd.yml`
+- PRs to `main`: backend tests only
+- Push/tag/manual non-PR runs:
+  - run backend tests
+  - build/push backend image to GHCR
+  - build/push frontend image to GHCR
