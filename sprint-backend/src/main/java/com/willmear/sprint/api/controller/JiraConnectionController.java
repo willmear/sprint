@@ -1,5 +1,7 @@
 package com.willmear.sprint.api.controller;
 
+import com.willmear.sprint.auth.api.AuthService;
+import com.willmear.sprint.auth.security.SessionCookieService;
 import com.willmear.sprint.common.exception.BadRequestException;
 import com.willmear.sprint.config.UiProperties;
 import com.willmear.sprint.jira.api.JiraConnectionService;
@@ -33,15 +35,21 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequestMapping
 public class JiraConnectionController {
 
+    private final AuthService authService;
+    private final SessionCookieService sessionCookieService;
     private final JiraConnectionService jiraConnectionService;
     private final JiraConnectionMapper jiraConnectionMapper;
     private final UiProperties uiProperties;
 
     public JiraConnectionController(
+            AuthService authService,
+            SessionCookieService sessionCookieService,
             JiraConnectionService jiraConnectionService,
             JiraConnectionMapper jiraConnectionMapper,
             UiProperties uiProperties
     ) {
+        this.authService = authService;
+        this.sessionCookieService = sessionCookieService;
         this.jiraConnectionService = jiraConnectionService;
         this.jiraConnectionMapper = jiraConnectionMapper;
         this.uiProperties = uiProperties;
@@ -63,6 +71,10 @@ public class JiraConnectionController {
             @RequestParam(name = "error", required = false) String error,
             @RequestParam(name = "error_description", required = false) String errorDescription
     ) {
+        if (authService.findActiveJiraLoginRedirect(state).isPresent()) {
+            return completeAuthLoginCallback(code, state, error, errorDescription);
+        }
+
         Optional<JiraConnectionService.OAuthCallbackContext> callbackContext = jiraConnectionService.findOAuthCallbackContext(state);
 
         try {
@@ -95,6 +107,27 @@ public class JiraConnectionController {
                     .orElseGet(() -> buildFallbackRedirectUri(exception.getMessage()));
             return buildRedirectResponse(redirectUri);
         }
+    }
+
+    private ResponseEntity<Void> completeAuthLoginCallback(
+            String code,
+            String state,
+            String error,
+            String errorDescription
+    ) {
+        if (StringUtils.hasText(error)) {
+            URI redirectUri = URI.create(appendAuthStatus(authService.handleJiraLoginError(state, error, errorDescription), "error", errorDescription));
+            return buildRedirectResponse(redirectUri);
+        }
+        if (!StringUtils.hasText(code)) {
+            throw new BadRequestException("Missing OAuth authorization code.");
+        }
+
+        AuthService.LoginResult result = authService.completeJiraLogin(code, state);
+        HttpHeaders headers = new HttpHeaders();
+        sessionCookieService.attachSessionCookie(headers, result.session().sessionToken());
+        headers.setLocation(URI.create(appendAuthStatus(result.redirectUri(), "success", null)));
+        return ResponseEntity.status(302).headers(headers).build();
     }
 
     @GetMapping("/api/workspaces/{workspaceId}/jira/connections")
@@ -183,5 +216,13 @@ public class JiraConnectionController {
             builder.queryParam("message", message);
         }
         return builder.build().toUri();
+    }
+
+    private String appendAuthStatus(String redirectUri, String status, String message) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(redirectUri).queryParam("auth", status);
+        if (StringUtils.hasText(message)) {
+            builder.queryParam("message", message);
+        }
+        return builder.build(true).toUriString();
     }
 }

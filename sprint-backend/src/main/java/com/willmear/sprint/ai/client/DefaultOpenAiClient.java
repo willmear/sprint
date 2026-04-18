@@ -6,6 +6,7 @@ import com.willmear.sprint.ai.client.dto.OpenAiChatRequest;
 import com.willmear.sprint.ai.client.dto.OpenAiChatResponse;
 import com.willmear.sprint.ai.client.dto.OpenAiChoiceDto;
 import com.willmear.sprint.ai.client.dto.OpenAiMessageDto;
+import com.willmear.sprint.ai.client.dto.OpenAiRequestMessageDto;
 import com.willmear.sprint.ai.client.dto.OpenAiResponseFormatDto;
 import com.willmear.sprint.ai.client.dto.OpenAiUsageDto;
 import com.willmear.sprint.ai.domain.model.AiGenerationRequest;
@@ -220,8 +221,8 @@ public class DefaultOpenAiClient implements OpenAiClient {
         return new OpenAiChatRequest(
                 model,
                 List.of(
-                        new OpenAiMessageDto(instructionRole(model), request.prompt().systemPrompt()),
-                        OpenAiMessageDto.user(request.prompt().userPrompt())
+                        OpenAiRequestMessageDto.withRole(instructionRole(model), request.prompt().systemPrompt()),
+                        OpenAiRequestMessageDto.user(request.prompt().userPrompt())
                 ),
                 temperature,
                 request.maxOutputTokens(),
@@ -256,7 +257,7 @@ public class DefaultOpenAiClient implements OpenAiClient {
         if (firstChoice == null || firstChoice.message() == null) {
             return "";
         }
-        return firstChoice.message().content() != null ? firstChoice.message().content() : "";
+        return firstChoice.message().textContent();
     }
 
     private List<List<Double>> extractEmbeddings(JsonNode response) {

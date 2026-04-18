@@ -20,8 +20,9 @@ type ApiRequestInit = Omit<RequestInit, "body"> & {
 export async function apiClient<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(init.body === undefined ? {} : { "Content-Type": "application/json" }),
       ...(init.headers ?? {}),
     },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),

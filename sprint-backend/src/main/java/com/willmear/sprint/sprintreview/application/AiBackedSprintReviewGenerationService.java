@@ -8,6 +8,7 @@ import com.willmear.sprint.sprintreview.domain.model.SprintContext;
 import com.willmear.sprint.sprintreview.domain.model.SprintReview;
 import com.willmear.sprint.sprintreview.domain.model.SprintReviewGenerationInput;
 import com.willmear.sprint.sprintreview.domain.port.SprintReviewGenerationPort;
+import com.willmear.sprint.sprintreview.domain.service.SprintReviewValidator;
 import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -25,17 +26,20 @@ public class AiBackedSprintReviewGenerationService implements SprintReviewGenera
     private final PlaceholderSprintReviewGenerationService placeholderSprintReviewGenerationService;
     private final OpenAiProperties openAiProperties;
     private final SprintReviewAiProperties sprintReviewAiProperties;
+    private final SprintReviewValidator sprintReviewValidator;
 
     public AiBackedSprintReviewGenerationService(
             SprintReviewAiFacade sprintReviewAiFacade,
             PlaceholderSprintReviewGenerationService placeholderSprintReviewGenerationService,
             OpenAiProperties openAiProperties,
-            SprintReviewAiProperties sprintReviewAiProperties
+            SprintReviewAiProperties sprintReviewAiProperties,
+            SprintReviewValidator sprintReviewValidator
     ) {
         this.sprintReviewAiFacade = sprintReviewAiFacade;
         this.placeholderSprintReviewGenerationService = placeholderSprintReviewGenerationService;
         this.openAiProperties = openAiProperties;
         this.sprintReviewAiProperties = sprintReviewAiProperties;
+        this.sprintReviewValidator = sprintReviewValidator;
     }
 
     @Override
@@ -62,7 +66,7 @@ public class AiBackedSprintReviewGenerationService implements SprintReviewGenera
                     input.tone()
             );
 
-            return new SprintReview(
+            SprintReview generated = new SprintReview(
                     UUID.randomUUID(),
                     context.workspaceId(),
                     context.externalSprintId(),
@@ -76,11 +80,23 @@ public class AiBackedSprintReviewGenerationService implements SprintReviewGenera
                     input.generationSource(),
                     "GENERATED"
             );
+            SprintReview validated = sprintReviewValidator.validate(generated);
+            LOGGER.info(
+                    "sprintreview.generation.ai.completed sprintId={} generationSource={} themes={} highlights={} blockers={} speakerNotes={}",
+                    context.externalSprintId(),
+                    input.generationSource(),
+                    validated.themes() != null ? validated.themes().size() : 0,
+                    validated.highlights() != null ? validated.highlights().size() : 0,
+                    validated.blockers() != null ? validated.blockers().size() : 0,
+                    validated.speakerNotes() != null ? validated.speakerNotes().size() : 0
+            );
+            return validated;
         } catch (RuntimeException exception) {
             if (sprintReviewAiProperties.fallbackToPlaceholder()) {
                 LOGGER.warn(
-                        "sprintreview.generation.path mode=placeholder reason=ai_failure sprintId={} model={}",
+                        "sprintreview.generation.path mode=placeholder reason=ai_failure sprintId={} generationSource={} model={}",
                         context.externalSprintId(),
+                        input.generationSource(),
                         openAiProperties.model(),
                         exception
                 );

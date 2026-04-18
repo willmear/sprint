@@ -184,7 +184,7 @@ function SprintsPageContent() {
           {availableJiraSprints.isLoading ? <p className="mt-4 text-sm text-stone-600">Loading available Jira sprints...</p> : null}
           {availableJiraSprints.error ? <p className="mt-4 text-sm text-rose-600">{availableJiraSprints.error.message}</p> : null}
           {!activeConnection && !connections.isLoading ? (
-            <p className="mt-4 text-sm text-rose-600">Connect Jira for this workspace before syncing a sprint.</p>
+            <p className="mt-4 text-sm text-rose-600">Authorize Jira for this workspace before syncing a sprint.</p>
           ) : null}
           {activeConnection && !availableJiraSprints.isLoading && filteredAvailableSprints.length === 0 ? (
             <p className="mt-4 text-sm text-stone-600">

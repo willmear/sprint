@@ -2,6 +2,12 @@ package com.willmear.sprint.config;
 
 import com.willmear.sprint.artifact.entity.ArtifactEntity;
 import com.willmear.sprint.artifact.repository.ArtifactRepository;
+import com.willmear.sprint.auth.entity.AppSessionEntity;
+import com.willmear.sprint.auth.entity.AppUserEntity;
+import com.willmear.sprint.auth.entity.AuthLoginStateEntity;
+import com.willmear.sprint.auth.repository.AppSessionRepository;
+import com.willmear.sprint.auth.repository.AppUserRepository;
+import com.willmear.sprint.auth.repository.AuthLoginStateRepository;
 import com.willmear.sprint.jira.infrastructure.entity.JiraBoardEntity;
 import com.willmear.sprint.jira.infrastructure.entity.JiraChangelogEventEntity;
 import com.willmear.sprint.jira.infrastructure.entity.JiraCommentEntity;
@@ -44,6 +50,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @Configuration
 @EnableConfigurationProperties(RetrievalProperties.class)
 @EntityScan(basePackageClasses = {
+        AppUserEntity.class,
+        AppSessionEntity.class,
+        AuthLoginStateEntity.class,
         WorkspaceEntity.class,
         JiraConnectionEntity.class,
         JiraOAuthStateEntity.class,
@@ -61,6 +70,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         PresentationSlideElementEntity.class
 })
 @EnableJpaRepositories(basePackageClasses = {
+        AppUserRepository.class,
+        AppSessionRepository.class,
+        AuthLoginStateRepository.class,
         WorkspaceRepository.class,
         JiraConnectionRepository.class,
         JiraOAuthStateRepository.class,

@@ -8,6 +8,8 @@ import com.willmear.sprint.jobs.domain.JobStatus;
 import com.willmear.sprint.jobs.domain.JobType;
 import com.willmear.sprint.jobs.repository.JobRepositoryAdapter;
 import com.willmear.sprint.observability.metrics.WorkflowMetricsRecorder;
+import com.willmear.sprint.workspace.api.WorkspaceService;
+import com.willmear.sprint.workspace.domain.model.Workspace;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.time.Instant;
@@ -23,14 +25,16 @@ import static org.mockito.Mockito.when;
 class CreateJobUseCaseTest {
 
     private final JobRepositoryAdapter jobRepositoryAdapter = mock(JobRepositoryAdapter.class);
+    private final WorkspaceService workspaceService = mock(WorkspaceService.class);
     private final WorkflowMetricsRecorder metricsRecorder = new WorkflowMetricsRecorder(new SimpleMeterRegistry());
     private final JobsProperties jobsProperties = new JobsProperties(true, Duration.ofSeconds(5), 5, "worker-1", 3, "default");
-    private final CreateJobUseCase useCase = new CreateJobUseCase(jobRepositoryAdapter, jobsProperties, metricsRecorder);
+    private final CreateJobUseCase useCase = new CreateJobUseCase(jobRepositoryAdapter, jobsProperties, metricsRecorder, workspaceService);
 
     @Test
     void shouldCreateJobWithDefaults() {
         UUID workspaceId = UUID.randomUUID();
         Job expected = job(workspaceId, JobType.SYNC_SPRINT, JsonNodeFactory.instance.objectNode());
+        when(workspaceService.getWorkspace(workspaceId)).thenReturn(workspace(workspaceId));
         when(jobRepositoryAdapter.create(org.mockito.ArgumentMatchers.eq(workspaceId), org.mockito.ArgumentMatchers.eq(JobType.SYNC_SPRINT), org.mockito.ArgumentMatchers.eq("default"),
                 org.mockito.ArgumentMatchers.any(JsonNode.class), org.mockito.ArgumentMatchers.eq(3), org.mockito.ArgumentMatchers.any(Instant.class)))
                 .thenReturn(expected);
@@ -60,5 +64,10 @@ class CreateJobUseCaseTest {
     private Job job(UUID workspaceId, JobType jobType, JsonNode payload) {
         Instant now = Instant.now();
         return new Job(UUID.randomUUID(), workspaceId, jobType, JobStatus.PENDING, "default", payload, 0, 3, now, null, null, null, null, null, null, null, now, now);
+    }
+
+    private Workspace workspace(UUID workspaceId) {
+        Instant now = Instant.now();
+        return new Workspace(workspaceId, UUID.randomUUID(), "Workspace", "Desc", now, now);
     }
 }

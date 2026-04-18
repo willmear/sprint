@@ -13,6 +13,7 @@ import com.willmear.sprint.sprintreview.domain.model.SprintReview;
 import com.willmear.sprint.sprintreview.domain.model.SprintReviewGenerationInput;
 import com.willmear.sprint.sprintreview.domain.model.SprintSummary;
 import com.willmear.sprint.sprintreview.domain.model.SprintTheme;
+import com.willmear.sprint.sprintreview.domain.service.SprintReviewValidator;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -29,6 +30,7 @@ class AiBackedSprintReviewGenerationServiceTest {
 
     private final SprintReviewAiFacade aiFacade = mock(SprintReviewAiFacade.class);
     private final PlaceholderSprintReviewGenerationService placeholder = mock(PlaceholderSprintReviewGenerationService.class);
+    private final SprintReviewValidator sprintReviewValidator = new SprintReviewValidator();
 
     @Test
     void shouldUsePlaceholderWhenOpenAiDisabled() {
@@ -38,7 +40,8 @@ class AiBackedSprintReviewGenerationServiceTest {
                 aiFacade,
                 placeholder,
                 new OpenAiProperties(false, true, "", "", "", "", "model", "embed", Duration.ofSeconds(5), 500, 0.2),
-                new SprintReviewAiProperties(true, true, 100, 5, 2000, 800)
+                new SprintReviewAiProperties(true, true, 100, 5, 2000, 800),
+                sprintReviewValidator
         );
         SprintReview fallback = review("PLACEHOLDER");
         when(placeholder.generate(context, input)).thenReturn(fallback);
@@ -57,7 +60,8 @@ class AiBackedSprintReviewGenerationServiceTest {
                 aiFacade,
                 placeholder,
                 new OpenAiProperties(true, true, "", "", "", "", "gpt-test", "embed", Duration.ofSeconds(5), 500, 0.2),
-                new SprintReviewAiProperties(true, true, 100, 5, 2000, 800)
+                new SprintReviewAiProperties(true, true, 100, 5, 2000, 800),
+                sprintReviewValidator
         );
         when(aiFacade.generate(context, "gpt-test", 0.2, 500, "leadership", "concise"))
                 .thenReturn(new SprintReviewAiFacade.SprintReviewAiResult(
@@ -84,10 +88,41 @@ class AiBackedSprintReviewGenerationServiceTest {
                 aiFacade,
                 placeholder,
                 new OpenAiProperties(true, true, "", "", "", "", "gpt-test", "embed", Duration.ofSeconds(5), 500, 0.2),
-                new SprintReviewAiProperties(true, true, 100, 5, 2000, 800)
+                new SprintReviewAiProperties(true, true, 100, 5, 2000, 800),
+                sprintReviewValidator
         );
         SprintReview fallback = review("PLACEHOLDER");
         doThrow(new IllegalStateException("boom")).when(aiFacade).generate(context, "gpt-test", 0.2, 500, "leadership", "concise");
+        when(placeholder.generate(context, input)).thenReturn(fallback);
+
+        SprintReview generated;
+        try (ScopedLogLevel ignored = ScopedLogLevel.off(AiBackedSprintReviewGenerationService.class)) {
+            generated = service.generate(context, input);
+        }
+
+        assertThat(generated).isEqualTo(fallback);
+    }
+
+    @Test
+    void shouldFallbackToPlaceholderWhenAiProducesInvalidReview() {
+        SprintContext context = context();
+        SprintReviewGenerationInput input = input();
+        AiBackedSprintReviewGenerationService service = new AiBackedSprintReviewGenerationService(
+                aiFacade,
+                placeholder,
+                new OpenAiProperties(true, true, "", "", "", "", "gpt-test", "embed", Duration.ofSeconds(5), 500, 0.2),
+                new SprintReviewAiProperties(true, true, 100, 5, 2000, 800),
+                sprintReviewValidator
+        );
+        SprintReview fallback = review("PLACEHOLDER");
+        when(aiFacade.generate(context, "gpt-test", 0.2, 500, "leadership", "concise"))
+                .thenReturn(new SprintReviewAiFacade.SprintReviewAiResult(
+                        new SprintSummary("AI title", "AI overview", null, null, null),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        List.of()
+                ));
         when(placeholder.generate(context, input)).thenReturn(fallback);
 
         SprintReview generated;

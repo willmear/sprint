@@ -12,6 +12,8 @@ import com.willmear.sprint.common.exception.ArtifactNotFoundException;
 import com.willmear.sprint.common.exception.ArtifactPersistenceException;
 import com.willmear.sprint.common.exception.LatestArtifactNotFoundException;
 import com.willmear.sprint.sprintreview.domain.model.SprintReview;
+import com.willmear.sprint.workspace.api.WorkspaceService;
+import com.willmear.sprint.workspace.domain.model.Workspace;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +30,7 @@ class ArtifactApplicationAndUseCasesTest {
 
     private final ArtifactRepository artifactRepository = mock(ArtifactRepository.class);
     private final ArtifactMapper artifactMapper = mock(ArtifactMapper.class);
+    private final WorkspaceService workspaceService = mock(WorkspaceService.class);
 
     @Test
     void shouldSaveArtifactThroughUseCase() {
@@ -54,9 +57,9 @@ class ArtifactApplicationAndUseCasesTest {
 
     @Test
     void shouldGetAndListArtifacts() {
-        GetArtifactUseCase getArtifactUseCase = new GetArtifactUseCase(artifactRepository, artifactMapper);
-        GetLatestArtifactUseCase getLatestArtifactUseCase = new GetLatestArtifactUseCase(artifactRepository, artifactMapper);
-        ListArtifactsUseCase listArtifactsUseCase = new ListArtifactsUseCase(artifactRepository, artifactMapper);
+        GetArtifactUseCase getArtifactUseCase = new GetArtifactUseCase(artifactRepository, artifactMapper, workspaceService);
+        GetLatestArtifactUseCase getLatestArtifactUseCase = new GetLatestArtifactUseCase(artifactRepository, artifactMapper, workspaceService);
+        ListArtifactsUseCase listArtifactsUseCase = new ListArtifactsUseCase(artifactRepository, artifactMapper, workspaceService);
         Artifact artifact = TestSprintReviewFactory.artifact();
         ArtifactEntity entity = new ArtifactEntity();
         entity.setId(artifact.id());
@@ -68,6 +71,7 @@ class ArtifactApplicationAndUseCasesTest {
                 artifact.workspaceId(), artifact.artifactType(), artifact.referenceType(), artifact.referenceId()
         )).thenReturn(List.of(entity));
         when(artifactMapper.toDomain(entity)).thenReturn(artifact);
+        when(workspaceService.getWorkspace(artifact.workspaceId())).thenReturn(workspace(artifact.workspaceId()));
 
         assertThat(getArtifactUseCase.get(artifact.id())).isEqualTo(artifact);
         assertThat(getLatestArtifactUseCase.get(artifact.workspaceId(), artifact.artifactType(), artifact.referenceType(), artifact.referenceId()))
@@ -79,8 +83,8 @@ class ArtifactApplicationAndUseCasesTest {
     @Test
     void shouldThrowForMissingArtifactReads() {
         Artifact artifact = TestSprintReviewFactory.artifact();
-        GetArtifactUseCase getArtifactUseCase = new GetArtifactUseCase(artifactRepository, artifactMapper);
-        GetLatestArtifactUseCase getLatestArtifactUseCase = new GetLatestArtifactUseCase(artifactRepository, artifactMapper);
+        GetArtifactUseCase getArtifactUseCase = new GetArtifactUseCase(artifactRepository, artifactMapper, workspaceService);
+        GetLatestArtifactUseCase getLatestArtifactUseCase = new GetLatestArtifactUseCase(artifactRepository, artifactMapper, workspaceService);
         when(artifactRepository.findById(artifact.id())).thenReturn(Optional.empty());
         when(artifactRepository.findFirstByWorkspaceIdAndArtifactTypeAndReferenceTypeAndReferenceIdOrderByGeneratedAtDescCreatedAtDesc(
                 artifact.workspaceId(), artifact.artifactType(), artifact.referenceType(), artifact.referenceId()
@@ -123,5 +127,10 @@ class ArtifactApplicationAndUseCasesTest {
         writerAdapter.write(review);
 
         verify(realSave).save(artifact);
+    }
+
+    private Workspace workspace(UUID workspaceId) {
+        Instant now = Instant.now();
+        return new Workspace(workspaceId, UUID.randomUUID(), "Workspace", "Desc", now, now);
     }
 }

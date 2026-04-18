@@ -8,14 +8,16 @@ const handles = [
 export type ResizeHandle = (typeof handles)[number]["key"];
 
 export function SelectionOverlay({
+  label = "Text box",
   onResizeStart,
 }: {
+  label?: string;
   onResizeStart: (handle: ResizeHandle, event: React.PointerEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <div className="pointer-events-none absolute inset-0 rounded-[4px] border border-blue-500 shadow-[0_0_0_1px_rgba(255,255,255,0.9)]">
       <div className="absolute -top-7 left-0 rounded-md border border-blue-300 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-700 shadow-sm">
-        Text box
+        {label}
       </div>
       {handles.map((handle) => (
         <button

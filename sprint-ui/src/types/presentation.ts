@@ -1,9 +1,55 @@
 export type DeckStatus = "DRAFT" | "READY" | "ARCHIVED";
 export type SlideType = "TITLE" | "OVERVIEW" | "THEMES" | "HIGHLIGHTS" | "BLOCKERS" | "SPEAKER_NOTES" | "CUSTOM";
 export type SlideLayoutType = "TITLE_ONLY" | "TITLE_AND_BULLETS" | "TITLE_BODY_NOTES" | "SECTION_SUMMARY";
-export type SlideElementType = "TEXT_BOX";
-export type SlideElementRole = "TITLE" | "BODY" | "SECTION_LABEL" | "FREEFORM";
+export type SlideTemplateType =
+  | "TITLE_SLIDE"
+  | "SECTION_DIVIDER"
+  | "EXECUTIVE_SUMMARY"
+  | "TWO_COLUMN_HIGHLIGHTS"
+  | "CALLOUT_SUMMARY"
+  | "BLOCKERS_RISKS"
+  | "CLOSING_SUMMARY";
+export type SlideElementType = "TEXT_BOX" | "SHAPE";
+export type SlideElementRole =
+  | "TITLE"
+  | "SUBTITLE"
+  | "BODY"
+  | "BODY_BULLETS"
+  | "SECTION_LABEL"
+  | "CALLOUT"
+  | "METRIC"
+  | "FOOTER"
+  | "FREEFORM";
 export type TextAlignment = "LEFT" | "CENTER" | "RIGHT";
+export type ShapeType = "RECTANGLE" | "ROUNDED_RECTANGLE" | "ELLIPSE" | "CIRCLE" | "TRIANGLE" | "ARROW" | "LINE" | "DIAMOND";
+export type BackgroundStyleType = "SOLID";
+
+export interface ColorPalette {
+  background: string;
+  surface: string;
+  textPrimary: string;
+  textSecondary: string;
+  accent: string;
+  accentSecondary: string;
+  danger: string;
+  mutedBorder: string;
+}
+
+export interface TypographyScale {
+  titleFontFamily: string;
+  bodyFontFamily: string;
+  titleFontSize: number;
+  subtitleFontSize: number;
+  bodyFontSize: number;
+  smallFontSize: number;
+}
+
+export interface PresentationThemeSummary {
+  themeId: string;
+  displayName: string;
+  colorPalette: ColorPalette;
+  typography: TypographyScale;
+}
 
 export interface PresentationSlideElement {
   id: string;
@@ -16,11 +62,20 @@ export interface PresentationSlideElement {
   y: number;
   width: number;
   height: number;
+  zIndex?: number | null;
+  rotationDegrees?: number | null;
+  fillColor?: string | null;
+  borderColor?: string | null;
+  borderWidth?: number | null;
+  textColor?: string | null;
   fontFamily: string;
   fontSize: number;
   bold: boolean;
   italic: boolean;
+  underline?: boolean;
   textAlignment: TextAlignment;
+  shapeType?: ShapeType | null;
+  hidden?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,7 +90,11 @@ export interface PresentationSlide {
   bodyText?: string | null;
   speakerNotes?: string | null;
   sectionLabel?: string | null;
+  backgroundColor?: string | null;
+  backgroundStyleType?: BackgroundStyleType | null;
+  showGrid?: boolean;
   layoutType: SlideLayoutType;
+  templateType?: SlideTemplateType | null;
   elements: PresentationSlideElement[];
   hidden: boolean;
   createdAt: string;
@@ -49,6 +108,9 @@ export interface PresentationDeck {
   referenceId: string;
   title: string;
   subtitle?: string | null;
+  themeId?: string | null;
+  themeDisplayName?: string | null;
+  theme?: PresentationThemeSummary | null;
   status: DeckStatus;
   sourceArtifactId?: string | null;
   slides: PresentationSlide[];
@@ -59,6 +121,7 @@ export interface PresentationDeck {
 export interface UpdateDeckRequest {
   title: string;
   subtitle?: string | null;
+  themeId?: string | null;
   status: DeckStatus;
   slides: Array<{
     id?: string | null;
@@ -68,21 +131,34 @@ export interface UpdateDeckRequest {
     bodyText?: string | null;
     speakerNotes?: string | null;
     sectionLabel?: string | null;
+    backgroundColor?: string | null;
+    backgroundStyleType?: BackgroundStyleType | null;
+    showGrid?: boolean | null;
     layoutType: SlideLayoutType;
+    templateType?: SlideTemplateType | null;
     elements: Array<{
       id?: string | null;
       elementType: SlideElementType;
       role: SlideElementRole;
-      textContent: string;
+      textContent?: string | null;
       x: number;
       y: number;
       width: number;
       height: number;
-      fontFamily: string;
-      fontSize: number;
+      zIndex?: number | null;
+      rotationDegrees?: number | null;
+      fillColor?: string | null;
+      borderColor?: string | null;
+      borderWidth?: number | null;
+      textColor?: string | null;
+      fontFamily?: string | null;
+      fontSize?: number | null;
       bold?: boolean;
       italic?: boolean;
-      textAlignment: TextAlignment;
+      underline?: boolean;
+      textAlignment?: TextAlignment | null;
+      shapeType?: ShapeType | null;
+      hidden?: boolean;
     }>;
     hidden?: boolean;
   }>;
@@ -95,21 +171,34 @@ export interface UpdateSlideRequest {
   bodyText?: string | null;
   speakerNotes?: string | null;
   sectionLabel?: string | null;
+  backgroundColor?: string | null;
+  backgroundStyleType?: BackgroundStyleType | null;
+  showGrid?: boolean | null;
   layoutType: SlideLayoutType;
+  templateType?: SlideTemplateType | null;
   elements: Array<{
     id?: string | null;
     elementType: SlideElementType;
     role: SlideElementRole;
-    textContent: string;
+    textContent?: string | null;
     x: number;
     y: number;
     width: number;
     height: number;
-    fontFamily: string;
-    fontSize: number;
+    zIndex?: number | null;
+    rotationDegrees?: number | null;
+    fillColor?: string | null;
+    borderColor?: string | null;
+    borderWidth?: number | null;
+    textColor?: string | null;
+    fontFamily?: string | null;
+    fontSize?: number | null;
     bold?: boolean;
     italic?: boolean;
-    textAlignment: TextAlignment;
+    underline?: boolean;
+    textAlignment?: TextAlignment | null;
+    shapeType?: ShapeType | null;
+    hidden?: boolean;
   }>;
   hidden?: boolean;
 }

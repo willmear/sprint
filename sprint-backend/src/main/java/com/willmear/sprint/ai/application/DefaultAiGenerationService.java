@@ -53,7 +53,15 @@ public class DefaultAiGenerationService implements AiGenerationService {
                 workflowMetricsRecorder.recordCount("ai.tokens.input", response.tokenUsage().inputTokens(), "workflow", request.workflowName());
                 workflowMetricsRecorder.recordCount("ai.tokens.output", response.tokenUsage().outputTokens(), "workflow", request.workflowName());
             }
-            LOGGER.info("ai.request.completed workflow={} prompt={} model={} finishReason={}", request.workflowName(), request.promptName(), response.model(), response.finishReason());
+            LOGGER.info(
+                    "ai.request.completed workflow={} prompt={} model={} finishReason={} contentLength={} contentPreview={}",
+                    request.workflowName(),
+                    request.promptName(),
+                    response.model(),
+                    response.finishReason(),
+                    response.content() != null ? response.content().length() : 0,
+                    preview(response.content())
+            );
             trace.close("completed");
             return response;
         } catch (RuntimeException exception) {
@@ -62,6 +70,14 @@ public class DefaultAiGenerationService implements AiGenerationService {
             LOGGER.error("ai.request.failed workflow={} prompt={} model={}", request.workflowName(), request.promptName(), request.model(), exception);
             throw exception;
         }
+    }
+
+    private String preview(String content) {
+        if (content == null || content.isBlank()) {
+            return "<empty>";
+        }
+        String sanitized = content.replace('\n', ' ').replace('\r', ' ').trim();
+        return sanitized.length() <= 240 ? sanitized : sanitized.substring(0, 240) + "...";
     }
 
     @Override

@@ -102,7 +102,7 @@ export function TextBoxElement({
         spellCheck={false}
         suppressContentEditableWarning
         style={{
-          color: "#0f172a",
+          color: element.textColor || "#0f172a",
           fontFamily: element.fontFamily,
           fontSize: `${element.fontSize}px`,
           fontStyle: element.italic ? "italic" : "normal",
@@ -110,10 +110,11 @@ export function TextBoxElement({
           letterSpacing: element.role === "TITLE" ? "-0.02em" : "0",
           lineHeight: element.role === "TITLE" ? 1.1 : 1.3,
           textAlign: element.textAlignment.toLowerCase() as "left" | "center" | "right",
+          textDecoration: element.underline ? "underline" : "none",
           whiteSpace: "pre-wrap",
         }}
       />
-      {selected ? <SelectionOverlay onResizeStart={onResizeStart} /> : null}
+      {selected ? <SelectionOverlay label="Text box" onResizeStart={onResizeStart} /> : null}
     </div>
   );
 }

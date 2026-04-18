@@ -3,6 +3,8 @@ package com.willmear.sprint.artifact.application;
 import com.willmear.sprint.artifact.api.ArtifactService;
 import com.willmear.sprint.artifact.domain.Artifact;
 import com.willmear.sprint.artifact.domain.ArtifactType;
+import com.willmear.sprint.common.exception.ResourceAccessDeniedException;
+import com.willmear.sprint.common.exception.WorkspaceAccessDeniedException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -34,7 +36,11 @@ public class ArtifactApplicationService implements ArtifactService {
 
     @Override
     public Artifact get(UUID artifactId) {
-        return getArtifactUseCase.get(artifactId);
+        try {
+            return getArtifactUseCase.get(artifactId);
+        } catch (WorkspaceAccessDeniedException exception) {
+            throw new ResourceAccessDeniedException("artifact", artifactId, exception);
+        }
     }
 
     @Override

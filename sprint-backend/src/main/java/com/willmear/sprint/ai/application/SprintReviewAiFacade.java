@@ -18,10 +18,14 @@ import com.willmear.sprint.sprintreview.domain.model.SprintHighlight;
 import com.willmear.sprint.sprintreview.domain.model.SprintSummary;
 import com.willmear.sprint.sprintreview.domain.model.SprintTheme;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SprintReviewAiFacade {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SprintReviewAiFacade.class);
 
     private final AiGenerationService aiGenerationService;
     private final SprintReviewPromptBuilder sprintReviewPromptBuilder;
@@ -52,7 +56,17 @@ public class SprintReviewAiFacade {
                 "sprint-review"
         );
         AiGenerationResult<SprintReviewAiResponse> result = aiGenerationService.generate(request, sprintReviewParser::parse);
-        SprintReviewAiResponse parsed = aiResponseValidator.validateSprintReviewPayload(result.parsedResult());
+        SprintReviewAiResponse parsed = result.parsedResult();
+        LOGGER.info(
+                "sprintreview.ai.raw parsedSummary={} parsedThemes={} parsedHighlights={} parsedBlockers={} parsedSpeakerNotes={} contentLength={}",
+                parsed != null && parsed.summary() != null,
+                parsed != null && parsed.themes() != null ? parsed.themes().size() : -1,
+                parsed != null && parsed.highlights() != null ? parsed.highlights().size() : -1,
+                parsed != null && parsed.blockers() != null ? parsed.blockers().size() : -1,
+                parsed != null && parsed.speakerNotes() != null ? parsed.speakerNotes().size() : -1,
+                result.rawResponse() != null && result.rawResponse().content() != null ? result.rawResponse().content().length() : 0
+        );
+        parsed = aiResponseValidator.validateSprintReviewPayload(parsed);
         return new SprintReviewAiResult(
                 new SprintSummary(
                         parsed.summary().title(),

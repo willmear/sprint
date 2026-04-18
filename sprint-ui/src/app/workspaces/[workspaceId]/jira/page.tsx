@@ -33,17 +33,18 @@ export default function WorkspaceJiraPage({
   const oauthSucceeded = oauthParams.jiraOAuth === "success";
   const oauthFailed = oauthParams.jiraOAuth === "error";
   const successMessage = oauthParams.accountName
-    ? `Connected Jira account ${oauthParams.accountName}.`
-    : "Jira OAuth completed successfully.";
-  const errorMessage = oauthParams.message ?? "Jira OAuth failed.";
+    ? `Connected Jira account ${oauthParams.accountName} to this workspace.`
+    : "Workspace Jira authorization completed successfully.";
+  const errorMessage = oauthParams.message ?? "Workspace Jira authorization failed.";
+  const canRemoveConnection = (status: string) => status === "REVOKED" || status === "FAILED";
 
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">Jira connection</p>
-        <h1 className="mt-2 font-display text-4xl font-bold text-ink">Log in to Jira</h1>
+        <p className="text-xs uppercase tracking-[0.24em] text-stone-500">Workspace Jira access</p>
+        <h1 className="mt-2 font-display text-4xl font-bold text-ink">Authorize Jira for this workspace</h1>
         <p className="mt-2 max-w-2xl text-sm text-stone-600">
-          Sign in with Jira, verify the account, and sign out when you want to disconnect this workspace.
+          Jira login already happened at app level. Use this page only to grant this workspace access to Jira sprint sync and review data.
         </p>
       </header>
 
@@ -62,15 +63,15 @@ export default function WorkspaceJiraPage({
 
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
-          <h2 className="font-display text-2xl font-bold text-ink">Jira login</h2>
-          <p className="mt-2 text-sm text-stone-600">Use Atlassian OAuth to sign in to the Jira account that owns the sprint data.</p>
+          <h2 className="font-display text-2xl font-bold text-ink">Authorize Jira site</h2>
+          <p className="mt-2 text-sm text-stone-600">Use Atlassian OAuth to grant this workspace access to Jira.</p>
           <div className="mt-6">
             <JiraConnectionForm workspaceId={workspaceId} />
           </div>
         </Card>
 
         <Card>
-          <h2 className="font-display text-2xl font-bold text-ink">Logged in Jira accounts</h2>
+          <h2 className="font-display text-2xl font-bold text-ink">Connected Jira accounts</h2>
           <p className="mt-2 text-sm text-stone-600">Use “Test” before syncing if you suspect a token or account issue.</p>
 
           <div className="mt-6 space-y-4">
@@ -88,7 +89,7 @@ export default function WorkspaceJiraPage({
                       <div className="flex flex-wrap items-center gap-3">
                         <h3 className="text-lg font-semibold text-ink">{connection.externalAccountDisplayName || connection.baseUrl}</h3>
                         <Badge tone={connection.status === "ACTIVE" ? "success" : "warning"}>
-                          {connection.status === "ACTIVE" ? "Logged in" : connection.status}
+                          {connection.status === "ACTIVE" ? "Connected" : connection.status}
                         </Badge>
                       </div>
                       <p className="mt-2 text-sm text-stone-600">{connection.baseUrl}</p>
@@ -107,7 +108,7 @@ export default function WorkspaceJiraPage({
                     >
                       Test
                     </Button>
-                    {connection.status === "REVOKED" ? (
+                    {canRemoveConnection(connection.status) ? (
                       <Button
                         variant="ghost"
                         disabled={remove.isPending}
@@ -121,7 +122,7 @@ export default function WorkspaceJiraPage({
                         disabled={disconnect.isPending}
                         onClick={() => disconnect.mutate(connection.id)}
                       >
-                        Log out
+                        Disconnect
                       </Button>
                     )}
                   </div>

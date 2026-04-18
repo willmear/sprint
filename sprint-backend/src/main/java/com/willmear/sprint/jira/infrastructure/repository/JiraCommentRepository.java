@@ -9,5 +9,7 @@ public interface JiraCommentRepository extends JpaRepository<JiraCommentEntity, 
 
     void deleteByJiraIssue_Id(UUID jiraIssueId);
 
+    void deleteByJiraIssue_JiraConnection_Id(UUID jiraConnectionId);
+
     List<JiraCommentEntity> findByJiraIssue_IdOrderByCreatedAtExternalAsc(UUID jiraIssueId);
 }

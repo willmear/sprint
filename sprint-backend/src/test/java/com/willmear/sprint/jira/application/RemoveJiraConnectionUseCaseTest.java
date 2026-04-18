@@ -10,6 +10,8 @@ import com.willmear.sprint.jira.domain.model.JiraAuthType;
 import com.willmear.sprint.jira.domain.model.JiraConnection;
 import com.willmear.sprint.jira.domain.model.JiraConnectionStatus;
 import com.willmear.sprint.jira.domain.port.JiraConnectionRepositoryPort;
+import com.willmear.sprint.jira.infrastructure.repository.JiraChangelogEventRepository;
+import com.willmear.sprint.jira.infrastructure.repository.JiraCommentRepository;
 import com.willmear.sprint.jira.infrastructure.repository.JiraIssueRepository;
 import com.willmear.sprint.jira.infrastructure.repository.JiraOAuthStateRepository;
 import com.willmear.sprint.jira.infrastructure.repository.JiraRawPayloadRepository;
@@ -35,6 +37,10 @@ class RemoveJiraConnectionUseCaseTest {
     @Mock
     private JiraIssueRepository jiraIssueRepository;
     @Mock
+    private JiraCommentRepository jiraCommentRepository;
+    @Mock
+    private JiraChangelogEventRepository jiraChangelogEventRepository;
+    @Mock
     private JiraRawPayloadRepository jiraRawPayloadRepository;
     @Mock
     private JiraOAuthStateRepository jiraOAuthStateRepository;
@@ -47,12 +53,14 @@ class RemoveJiraConnectionUseCaseTest {
     void shouldRemoveRevokedConnectionWithoutDependentData() {
         JiraConnection connection = revokedConnection();
         when(getJiraConnectionUseCase.get(connection.workspaceId(), connection.id())).thenReturn(connection);
-        when(jiraSprintRepository.existsByJiraConnection_Id(connection.id())).thenReturn(false);
-        when(jiraIssueRepository.existsByJiraConnection_Id(connection.id())).thenReturn(false);
-        when(embeddingDocumentRepository.existsByJiraConnectionId(connection.id())).thenReturn(false);
 
         useCase.remove(connection.workspaceId(), connection.id());
 
+        verify(jiraCommentRepository).deleteByJiraIssue_JiraConnection_Id(connection.id());
+        verify(jiraChangelogEventRepository).deleteByJiraIssue_JiraConnection_Id(connection.id());
+        verify(jiraIssueRepository).deleteByJiraConnection_Id(connection.id());
+        verify(jiraSprintRepository).deleteByJiraConnection_Id(connection.id());
+        verify(embeddingDocumentRepository).deleteByJiraConnectionId(connection.id());
         verify(jiraOAuthStateRepository).deleteByConnection_Id(connection.id());
         verify(jiraRawPayloadRepository).deleteByJiraConnection_Id(connection.id());
         verify(jiraConnectionRepositoryPort).deleteByIdAndWorkspaceId(connection.id(), connection.workspaceId());
@@ -65,22 +73,26 @@ class RemoveJiraConnectionUseCaseTest {
 
         assertThatThrownBy(() -> useCase.remove(connection.workspaceId(), connection.id()))
                 .isInstanceOf(BadRequestException.class)
-                .hasMessage("Only revoked Jira connections can be removed.");
+                .hasMessage("Only revoked or failed Jira connections can be removed.");
 
         verify(jiraConnectionRepositoryPort, never()).deleteByIdAndWorkspaceId(connection.id(), connection.workspaceId());
     }
 
     @Test
-    void shouldRejectRemoveWhenDependentDataExists() {
-        JiraConnection connection = revokedConnection();
+    void shouldRemoveFailedConnectionAndPurgeDependentData() {
+        JiraConnection connection = failedConnection();
         when(getJiraConnectionUseCase.get(connection.workspaceId(), connection.id())).thenReturn(connection);
-        when(jiraSprintRepository.existsByJiraConnection_Id(connection.id())).thenReturn(true);
 
-        assertThatThrownBy(() -> useCase.remove(connection.workspaceId(), connection.id()))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessage("This Jira connection still has synced sprint data and cannot be removed yet.");
+        useCase.remove(connection.workspaceId(), connection.id());
 
-        verify(jiraConnectionRepositoryPort, never()).deleteByIdAndWorkspaceId(connection.id(), connection.workspaceId());
+        verify(jiraCommentRepository).deleteByJiraIssue_JiraConnection_Id(connection.id());
+        verify(jiraChangelogEventRepository).deleteByJiraIssue_JiraConnection_Id(connection.id());
+        verify(jiraIssueRepository).deleteByJiraConnection_Id(connection.id());
+        verify(jiraSprintRepository).deleteByJiraConnection_Id(connection.id());
+        verify(embeddingDocumentRepository).deleteByJiraConnectionId(connection.id());
+        verify(jiraOAuthStateRepository).deleteByConnection_Id(connection.id());
+        verify(jiraRawPayloadRepository).deleteByJiraConnection_Id(connection.id());
+        verify(jiraConnectionRepositoryPort).deleteByIdAndWorkspaceId(connection.id(), connection.workspaceId());
     }
 
     private JiraConnection revokedConnection() {
@@ -114,6 +126,26 @@ class RemoveJiraConnectionUseCaseTest {
                 "access",
                 "refresh",
                 Instant.now().plusSeconds(3600),
+                Instant.now(),
+                "acct",
+                "Example User",
+                "https://avatar.example/user.png",
+                Instant.now(),
+                Instant.now()
+        );
+    }
+
+    private JiraConnection failedConnection() {
+        return new JiraConnection(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "https://example.atlassian.net",
+                JiraAuthType.OAUTH,
+                JiraConnectionStatus.FAILED,
+                "user@example.com",
+                "access",
+                "refresh",
+                Instant.now().minusSeconds(3600),
                 Instant.now(),
                 "acct",
                 "Example User",

@@ -11,6 +11,7 @@ import com.willmear.sprint.jobs.domain.JobType;
 import com.willmear.sprint.sprintreview.api.SprintReviewService;
 import com.willmear.sprint.sprintreview.domain.model.SprintContext;
 import com.willmear.sprint.sprintreview.domain.model.SprintReview;
+import com.willmear.sprint.workspace.application.WorkspaceAuthorizationService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,6 +23,7 @@ public class SprintReviewApplicationService implements SprintReviewService {
     private final JobService jobService;
     private final ObjectMapper objectMapper;
     private final SprintReviewProperties sprintReviewProperties;
+    private final WorkspaceAuthorizationService workspaceAuthorizationService;
 
     public SprintReviewApplicationService(
             GenerateSprintReviewUseCase generateSprintReviewUseCase,
@@ -29,7 +31,8 @@ public class SprintReviewApplicationService implements SprintReviewService {
             GetSprintReviewUseCase getSprintReviewUseCase,
             JobService jobService,
             ObjectMapper objectMapper,
-            SprintReviewProperties sprintReviewProperties
+            SprintReviewProperties sprintReviewProperties,
+            WorkspaceAuthorizationService workspaceAuthorizationService
     ) {
         this.generateSprintReviewUseCase = generateSprintReviewUseCase;
         this.buildSprintContextUseCase = buildSprintContextUseCase;
@@ -37,25 +40,30 @@ public class SprintReviewApplicationService implements SprintReviewService {
         this.jobService = jobService;
         this.objectMapper = objectMapper;
         this.sprintReviewProperties = sprintReviewProperties;
+        this.workspaceAuthorizationService = workspaceAuthorizationService;
     }
 
     @Override
     public SprintReview generateReview(java.util.UUID workspaceId, Long externalSprintId, GenerateSprintReviewRequest request) {
+        workspaceAuthorizationService.ensureCanAccessWorkspace(workspaceId);
         return generateSprintReviewUseCase.generate(workspaceId, externalSprintId, resolveRequest(request), "DIRECT");
     }
 
     @Override
     public SprintContext getSprintContext(java.util.UUID workspaceId, Long externalSprintId, boolean includeComments, boolean includeChangelog) {
+        workspaceAuthorizationService.ensureCanAccessWorkspace(workspaceId);
         return buildSprintContextUseCase.build(workspaceId, externalSprintId, includeComments, includeChangelog);
     }
 
     @Override
     public SprintReview getReview(java.util.UUID workspaceId, Long externalSprintId) {
+        workspaceAuthorizationService.ensureCanAccessWorkspace(workspaceId);
         return getSprintReviewUseCase.get(workspaceId, externalSprintId);
     }
 
     @Override
     public Job enqueueReviewGeneration(java.util.UUID workspaceId, Long externalSprintId, GenerateSprintReviewRequest request) {
+        workspaceAuthorizationService.ensureCanAccessWorkspace(workspaceId);
         GenerateSprintReviewRequest resolvedRequest = resolveRequest(request);
         if (!sprintReviewProperties.enableJobEntrypoint()) {
             throw new BadRequestException("Sprint review job entrypoint is disabled.");

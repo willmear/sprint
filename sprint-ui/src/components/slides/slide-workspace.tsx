@@ -1,10 +1,11 @@
 import { SlideCanvasStage } from "@/components/slides/slide-canvas-stage";
-import type { PresentationSlide } from "@/types/presentation";
+import type { PresentationSlide, PresentationThemeSummary } from "@/types/presentation";
 
 export function SlideWorkspace({
   slide,
   deckTitle,
   deckSubtitle,
+  deckTheme,
   selectedElementId,
   onSelectElement,
   onChangeElementText,
@@ -13,6 +14,7 @@ export function SlideWorkspace({
   slide: PresentationSlide | null;
   deckTitle: string;
   deckSubtitle?: string | null;
+  deckTheme?: PresentationThemeSummary | null;
   selectedElementId: string | null;
   onSelectElement: (elementId: string | null) => void;
   onChangeElementText: (elementId: string, text: string) => void;
@@ -26,6 +28,7 @@ export function SlideWorkspace({
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-8">
         <SlideCanvasStage
           deckSubtitle={deckSubtitle}
+          deckTheme={deckTheme}
           deckTitle={deckTitle}
           onChangeElementText={onChangeElementText}
           onSelectElement={onSelectElement}

@@ -3,6 +3,8 @@ package com.willmear.sprint.jira.application;
 import com.willmear.sprint.common.exception.BadRequestException;
 import com.willmear.sprint.jira.domain.model.JiraConnection;
 import com.willmear.sprint.jira.domain.model.JiraConnectionStatus;
+import com.willmear.sprint.jira.infrastructure.repository.JiraChangelogEventRepository;
+import com.willmear.sprint.jira.infrastructure.repository.JiraCommentRepository;
 import com.willmear.sprint.jira.domain.port.JiraConnectionRepositoryPort;
 import com.willmear.sprint.jira.infrastructure.repository.JiraIssueRepository;
 import com.willmear.sprint.jira.infrastructure.repository.JiraOAuthStateRepository;
@@ -20,6 +22,8 @@ public class RemoveJiraConnectionUseCase {
     private final JiraConnectionRepositoryPort jiraConnectionRepositoryPort;
     private final JiraSprintRepository jiraSprintRepository;
     private final JiraIssueRepository jiraIssueRepository;
+    private final JiraCommentRepository jiraCommentRepository;
+    private final JiraChangelogEventRepository jiraChangelogEventRepository;
     private final JiraRawPayloadRepository jiraRawPayloadRepository;
     private final JiraOAuthStateRepository jiraOAuthStateRepository;
     private final EmbeddingDocumentRepository embeddingDocumentRepository;
@@ -29,6 +33,8 @@ public class RemoveJiraConnectionUseCase {
             JiraConnectionRepositoryPort jiraConnectionRepositoryPort,
             JiraSprintRepository jiraSprintRepository,
             JiraIssueRepository jiraIssueRepository,
+            JiraCommentRepository jiraCommentRepository,
+            JiraChangelogEventRepository jiraChangelogEventRepository,
             JiraRawPayloadRepository jiraRawPayloadRepository,
             JiraOAuthStateRepository jiraOAuthStateRepository,
             EmbeddingDocumentRepository embeddingDocumentRepository
@@ -37,6 +43,8 @@ public class RemoveJiraConnectionUseCase {
         this.jiraConnectionRepositoryPort = jiraConnectionRepositoryPort;
         this.jiraSprintRepository = jiraSprintRepository;
         this.jiraIssueRepository = jiraIssueRepository;
+        this.jiraCommentRepository = jiraCommentRepository;
+        this.jiraChangelogEventRepository = jiraChangelogEventRepository;
         this.jiraRawPayloadRepository = jiraRawPayloadRepository;
         this.jiraOAuthStateRepository = jiraOAuthStateRepository;
         this.embeddingDocumentRepository = embeddingDocumentRepository;
@@ -45,21 +53,25 @@ public class RemoveJiraConnectionUseCase {
     @Transactional
     public void remove(UUID workspaceId, UUID connectionId) {
         JiraConnection connection = getJiraConnectionUseCase.get(workspaceId, connectionId);
-        if (connection.status() != JiraConnectionStatus.REVOKED) {
-            throw new BadRequestException("Only revoked Jira connections can be removed.");
-        }
-        if (hasDependentData(connectionId)) {
-            throw new BadRequestException("This Jira connection still has synced sprint data and cannot be removed yet.");
+        if (!isRemovable(connection.status())) {
+            throw new BadRequestException("Only revoked or failed Jira connections can be removed.");
         }
 
+        deleteDependentData(connectionId);
         jiraOAuthStateRepository.deleteByConnection_Id(connectionId);
         jiraRawPayloadRepository.deleteByJiraConnection_Id(connectionId);
         jiraConnectionRepositoryPort.deleteByIdAndWorkspaceId(connectionId, workspaceId);
     }
 
-    private boolean hasDependentData(UUID connectionId) {
-        return jiraSprintRepository.existsByJiraConnection_Id(connectionId)
-                || jiraIssueRepository.existsByJiraConnection_Id(connectionId)
-                || embeddingDocumentRepository.existsByJiraConnectionId(connectionId);
+    private boolean isRemovable(JiraConnectionStatus status) {
+        return status == JiraConnectionStatus.REVOKED || status == JiraConnectionStatus.FAILED;
+    }
+
+    private void deleteDependentData(UUID connectionId) {
+        jiraCommentRepository.deleteByJiraIssue_JiraConnection_Id(connectionId);
+        jiraChangelogEventRepository.deleteByJiraIssue_JiraConnection_Id(connectionId);
+        jiraIssueRepository.deleteByJiraConnection_Id(connectionId);
+        jiraSprintRepository.deleteByJiraConnection_Id(connectionId);
+        embeddingDocumentRepository.deleteByJiraConnectionId(connectionId);
     }
 }

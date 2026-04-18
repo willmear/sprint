@@ -97,7 +97,7 @@ export function SlideToolbar({
           disabled={!selectedElement}
           onClick={() => onElementChange({ bold: !selectedElement?.bold })}
           type="button"
-          variant={selectedElement?.bold ? "default" : "secondary"}
+          variant={selectedElement?.bold ? "primary" : "secondary"}
         >
           Bold
         </Button>
@@ -105,7 +105,7 @@ export function SlideToolbar({
           disabled={!selectedElement}
           onClick={() => onElementChange({ italic: !selectedElement?.italic })}
           type="button"
-          variant={selectedElement?.italic ? "default" : "secondary"}
+          variant={selectedElement?.italic ? "primary" : "secondary"}
         >
           Italic
         </Button>
@@ -116,7 +116,7 @@ export function SlideToolbar({
               disabled={!selectedElement}
               onClick={() => onElementChange({ textAlignment: alignment })}
               type="button"
-              variant={selectedElement?.textAlignment === alignment ? "default" : "secondary"}
+              variant={selectedElement?.textAlignment === alignment ? "primary" : "secondary"}
             >
               {alignment.toLowerCase()}
             </Button>

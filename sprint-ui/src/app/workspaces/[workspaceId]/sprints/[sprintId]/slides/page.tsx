@@ -6,6 +6,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import { SlideEditorShell } from "@/components/slides/slide-editor-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { resolvePresentationTheme } from "@/lib/presentation-themes";
 import { ApiError } from "@/lib/api/client";
 import {
   useAddSlide,
@@ -20,10 +21,13 @@ import type {
   PresentationDeck,
   PresentationSlide,
   PresentationSlideElement,
+  ShapeType,
   SlideElementRole,
   UpdateDeckRequest,
 } from "@/types/presentation";
 
+const CANVAS_WIDTH = 1280;
+const CANVAS_HEIGHT = 720;
 const DEFAULT_TEXTBOX_WIDTH = 360;
 const DEFAULT_TEXTBOX_HEIGHT = 120;
 const DEFAULT_TEXTBOX_X = 220;
@@ -52,13 +56,14 @@ export default function SlideEditorPage({
     if (!deckQuery.data) {
       return;
     }
-    setDraftDeck(deckQuery.data);
+    const normalizedDeck = normalizeDeck(deckQuery.data);
+    setDraftDeck(normalizedDeck);
     setDirty(false);
     setSelectedSlideId((current) => {
-      if (current && deckQuery.data.slides.some((slide) => slide.id === current)) {
+      if (current && normalizedDeck.slides.some((slide) => slide.id === current)) {
         return current;
       }
-      return deckQuery.data.slides[0]?.id ?? null;
+      return normalizedDeck.slides[0]?.id ?? null;
     });
   }, [deckQuery.data]);
 
@@ -92,16 +97,17 @@ export default function SlideEditorPage({
   const reviewHref = `/review/${workspaceId}/${sprintId}`;
 
   function replaceDraft(nextDeck: PresentationDeck, preferredSlideId?: string | null) {
-    setDraftDeck(nextDeck);
+    const normalizedDeck = normalizeDeck(nextDeck);
+    setDraftDeck(normalizedDeck);
     setDirty(false);
     setSelectedSlideId(() => {
-      if (preferredSlideId && nextDeck.slides.some((slide) => slide.id === preferredSlideId)) {
+      if (preferredSlideId && normalizedDeck.slides.some((slide) => slide.id === preferredSlideId)) {
         return preferredSlideId;
       }
-      if (selectedSlideId && nextDeck.slides.some((slide) => slide.id === selectedSlideId)) {
+      if (selectedSlideId && normalizedDeck.slides.some((slide) => slide.id === selectedSlideId)) {
         return selectedSlideId;
       }
-      return nextDeck.slides[0]?.id ?? null;
+      return normalizedDeck.slides[0]?.id ?? null;
     });
   }
 
@@ -110,7 +116,7 @@ export default function SlideEditorPage({
       if (!current) {
         return current;
       }
-      return updater(current);
+      return normalizeDeck(updater(current));
     });
     setDirty(true);
     setEditorMessage(null);
@@ -126,16 +132,40 @@ export default function SlideEditorPage({
     }));
   }
 
+  function updateSelectedElement(updates: Partial<PresentationSlideElement>) {
+    if (!selectedElementId) {
+      return;
+    }
+    updateCurrentSlide((slide) => ({
+      ...slide,
+      elements: slide.elements.map((element) => (element.id === selectedElementId ? { ...element, ...updates } : element)),
+    }));
+  }
+
   function handleSelectSlide(slideId: string) {
     setSelectedSlideId(slideId);
     setSelectedElementId(null);
   }
 
-  function handleChangeElementText(elementId: string, text: string) {
-    updateCurrentSlide((slide) => {
-      const nextElements = slide.elements.map((element) => (element.id === elementId ? { ...element, textContent: text } : element));
-      return synchronizeSlide({ ...slide, elements: nextElements });
+  function handleChangeDeckTheme(themeId: string) {
+    updateDraft((current) => {
+      const theme = resolvePresentationTheme(themeId);
+      return {
+        ...current,
+        theme,
+        themeDisplayName: theme.displayName,
+        themeId,
+      };
     });
+  }
+
+  function handleChangeElementText(elementId: string, text: string) {
+    updateCurrentSlide((slide) =>
+      synchronizeSlide({
+        ...slide,
+        elements: slide.elements.map((element) => (element.id === elementId ? { ...element, textContent: text } : element)),
+      })
+    );
   }
 
   function handleUpdateElementFrame(
@@ -149,14 +179,36 @@ export default function SlideEditorPage({
   }
 
   function handleChangeElementFormatting(
-    updates: Partial<Pick<PresentationSlideElement, "fontFamily" | "fontSize" | "bold" | "italic" | "textAlignment">>
+    updates: Partial<
+      Pick<
+        PresentationSlideElement,
+        "fontFamily" | "fontSize" | "bold" | "italic" | "underline" | "textAlignment" | "textColor" | "fillColor" | "borderColor" | "borderWidth"
+      >
+    >
   ) {
     if (!selectedElementId) {
       return;
     }
+    updateSelectedElement(updates);
+  }
+
+  function handleSelectedElementChange(
+    updates: Partial<Pick<PresentationSlideElement, "textContent" | "x" | "y" | "width" | "height" | "fillColor" | "borderColor" | "borderWidth" | "textColor">>
+  ) {
+    if (!selectedElementId) {
+      return;
+    }
+    if (updates.textContent !== undefined) {
+      handleChangeElementText(selectedElementId, updates.textContent);
+      return;
+    }
+    updateSelectedElement(updates);
+  }
+
+  function handleSlideStyleChange(updates: Partial<Pick<PresentationSlide, "backgroundColor" | "showGrid">>) {
     updateCurrentSlide((slide) => ({
       ...slide,
-      elements: slide.elements.map((element) => (element.id === selectedElementId ? { ...element, ...updates } : element)),
+      ...updates,
     }));
   }
 
@@ -164,46 +216,63 @@ export default function SlideEditorPage({
     if (!selectedSlide) {
       return;
     }
-    const offset = selectedSlide.elements.length * 18;
-    const nextElement = buildTextBox(selectedSlide.id, selectedSlide.elements.length, {
+    const nextElement = buildTextBox(selectedSlide.id, selectedSlide.elements.length, selectedSlide.elements.length, {
       textContent: "Add your point here",
       role: "FREEFORM",
-      x: DEFAULT_TEXTBOX_X + offset,
-      y: DEFAULT_TEXTBOX_Y + offset,
+      x: DEFAULT_TEXTBOX_X + selectedSlide.elements.length * 18,
+      y: DEFAULT_TEXTBOX_Y + selectedSlide.elements.length * 18,
       width: DEFAULT_TEXTBOX_WIDTH,
       height: DEFAULT_TEXTBOX_HEIGHT,
+      textColor: selectedDeckTheme(draftDeck).colorPalette.textPrimary,
     });
     updateCurrentSlide((slide) => ({
       ...slide,
-      elements: [...slide.elements, nextElement],
+      elements: normalizeElements([...slide.elements, nextElement]),
     }));
     setSelectedElementId(nextElement.id);
     setEditorMessage("Text box added.");
+  }
+
+  function handleAddShape(shapeType: ShapeType) {
+    if (!selectedSlide) {
+      return;
+    }
+    const theme = selectedDeckTheme(draftDeck);
+    const nextElement = buildShape(selectedSlide.id, selectedSlide.elements.length, selectedSlide.elements.length, shapeType, {
+      fillColor: theme.colorPalette.accent + "22",
+      borderColor: theme.colorPalette.accent,
+      textColor: theme.colorPalette.textPrimary,
+      x: 280 + selectedSlide.elements.length * 12,
+      y: 160 + selectedSlide.elements.length * 12,
+    });
+    updateCurrentSlide((slide) => ({
+      ...slide,
+      elements: normalizeElements([...slide.elements, nextElement]),
+    }));
+    setSelectedElementId(nextElement.id);
+    setEditorMessage("Shape added.");
   }
 
   function handleDuplicateElement() {
     if (!selectedSlide || !selectedElement) {
       return;
     }
-    const nextElement = buildTextBox(selectedSlide.id, selectedSlide.elements.length, {
-      textContent: `${selectedElement.textContent}`,
-      role: selectedElement.role,
-      x: Math.min(selectedElement.x + 24, 1280 - selectedElement.width),
-      y: Math.min(selectedElement.y + 24, 720 - selectedElement.height),
-      width: selectedElement.width,
-      height: selectedElement.height,
-      fontFamily: selectedElement.fontFamily,
-      fontSize: selectedElement.fontSize,
-      bold: selectedElement.bold,
-      italic: selectedElement.italic,
-      textAlignment: selectedElement.textAlignment,
-    });
+    const nextElement: PresentationSlideElement = {
+      ...selectedElement,
+      id: crypto.randomUUID(),
+      x: Math.min(selectedElement.x + 24, CANVAS_WIDTH - selectedElement.width),
+      y: Math.min(selectedElement.y + 24, CANVAS_HEIGHT - selectedElement.height),
+      elementOrder: selectedSlide.elements.length,
+      zIndex: selectedSlide.elements.length,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
     updateCurrentSlide((slide) => ({
       ...slide,
-      elements: [...slide.elements, nextElement],
+      elements: normalizeElements([...slide.elements, nextElement]),
     }));
     setSelectedElementId(nextElement.id);
-    setEditorMessage("Text box duplicated.");
+    setEditorMessage(`${selectedElement.elementType === "SHAPE" ? "Shape" : "Text box"} duplicated.`);
   }
 
   function handleDeleteElement() {
@@ -213,13 +282,33 @@ export default function SlideEditorPage({
     updateCurrentSlide((slide) =>
       synchronizeSlide({
         ...slide,
-        elements: slide.elements.filter((element) => element.id !== selectedElementId),
+        elements: normalizeElements(slide.elements.filter((element) => element.id !== selectedElementId)),
       })
     );
     setSelectedElementId(null);
-    setEditorMessage("Text box deleted.");
+    setEditorMessage("Object deleted.");
   }
 
+  function handleMoveLayer(direction: "backward" | "forward") {
+    if (!selectedSlide || !selectedElementId) {
+      return;
+    }
+    const ordered = normalizeElements(selectedSlide.elements);
+    const index = ordered.findIndex((element) => element.id === selectedElementId);
+    if (index < 0) {
+      return;
+    }
+    const swapIndex = direction === "forward" ? index + 1 : index - 1;
+    if (swapIndex < 0 || swapIndex >= ordered.length) {
+      return;
+    }
+    const next = [...ordered];
+    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+    updateCurrentSlide((slide) => ({
+      ...slide,
+      elements: normalizeElements(next),
+    }));
+  }
 
   function handleUpdateNotes(notes: string) {
     updateCurrentSlide((slide) => ({ ...slide, speakerNotes: notes || null }));
@@ -299,15 +388,16 @@ export default function SlideEditorPage({
     if (!draftDeck || sourceSlideId === targetSlideId) {
       return;
     }
-    const reorderedIds = reorderSlideIds(
-      draftDeck.slides.map((slide) => slide.id),
-      sourceSlideId,
-      targetSlideId
-    );
     try {
       const nextDeck = await reorderSlides.mutateAsync({
         deckId: draftDeck.id,
-        payload: { slideIds: reorderedIds },
+        payload: {
+          slideIds: reorderSlideIds(
+            draftDeck.slides.map((slide) => slide.id),
+            sourceSlideId,
+            targetSlideId
+          ),
+        },
       });
       replaceDraft(nextDeck, selectedSlideId);
       setEditorMessage("Slides reordered.");
@@ -354,39 +444,46 @@ export default function SlideEditorPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#eceff3]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#eceff3]">
       {editorMessage ? (
         <div className={editorMessage.toLowerCase().includes("failed") ? "border-b border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700" : "border-b border-slate-200 bg-white px-4 py-2 text-sm text-slate-600"}>{editorMessage}</div>
       ) : null}
 
-      <SlideEditorShell
-        deck={draftDeck}
-        dirty={dirty}
-        onAddSlide={handleAddSlide}
-        onAddTextBox={handleAddTextBox}
-        onChangeElementFormatting={handleChangeElementFormatting}
-        onChangeElementText={handleChangeElementText}
-        onDeckStatusChange={(value) => updateDraft((current) => ({ ...current, status: value }))}
-        onDeckSubtitleChange={(value) => updateDraft((current) => ({ ...current, subtitle: value || null }))}
-        onDeckTitleChange={(value) => updateDraft((current) => ({ ...current, title: value }))}
-        onDeleteElement={handleDeleteElement}
-        onDeleteSlide={() => void handleDeleteSlide()}
-        onDuplicateElement={handleDuplicateElement}
-        onDuplicateSlide={() => void handleDuplicateSlide()}
-        onReorderSlides={(sourceSlideId, targetSlideId) => void handleReorderSlides(sourceSlideId, targetSlideId)}
-        onSave={() => void handleSave()}
-        onUpdateNotes={handleUpdateNotes}
-        onSelectElement={setSelectedElementId}
-        onSelectSlide={handleSelectSlide}
-        onSlideChange={updateCurrentSlide}
-        onUpdateElementFrame={handleUpdateElementFrame}
-        reviewHref={reviewHref}
-        savePending={
-          saveDeck.isPending || addSlide.isPending || duplicateSlide.isPending || deleteSlide.isPending || reorderSlides.isPending
-        }
-        selectedElement={selectedElement}
-        selectedSlide={selectedSlide}
-      />
+      <div className="min-h-0 flex-1">
+        <SlideEditorShell
+          deck={draftDeck}
+          dirty={dirty}
+          onAddShape={handleAddShape}
+          onAddSlide={handleAddSlide}
+          onAddTextBox={handleAddTextBox}
+          onChangeElementFormatting={handleChangeElementFormatting}
+          onChangeElementText={handleChangeElementText}
+          onDeckStatusChange={(value) => updateDraft((current) => ({ ...current, status: value }))}
+          onDeckSubtitleChange={(value) => updateDraft((current) => ({ ...current, subtitle: value || null }))}
+          onDeckTitleChange={(value) => updateDraft((current) => ({ ...current, title: value }))}
+          onDeleteElement={handleDeleteElement}
+          onDeleteSlide={() => void handleDeleteSlide()}
+          onDuplicateElement={handleDuplicateElement}
+          onDuplicateSlide={() => void handleDuplicateSlide()}
+          onLayerBackward={() => handleMoveLayer("backward")}
+          onLayerForward={() => handleMoveLayer("forward")}
+          onReorderSlides={(sourceSlideId, targetSlideId) => void handleReorderSlides(sourceSlideId, targetSlideId)}
+          onSave={() => void handleSave()}
+          onSelectedElementChange={handleSelectedElementChange}
+          onSelectElement={setSelectedElementId}
+          onSelectSlide={handleSelectSlide}
+          onSlideStyleChange={handleSlideStyleChange}
+          onThemeChange={handleChangeDeckTheme}
+          onUpdateElementFrame={handleUpdateElementFrame}
+          onUpdateNotes={handleUpdateNotes}
+          reviewHref={reviewHref}
+          savePending={
+            saveDeck.isPending || addSlide.isPending || duplicateSlide.isPending || deleteSlide.isPending || reorderSlides.isPending
+          }
+          selectedElement={selectedElement}
+          selectedSlide={selectedSlide}
+        />
+      </div>
     </div>
   );
 }
@@ -395,6 +492,7 @@ function toUpdateDeckRequest(deck: PresentationDeck): UpdateDeckRequest {
   return {
     title: deck.title,
     subtitle: deck.subtitle,
+    themeId: deck.themeId,
     status: deck.status,
     slides: deck.slides.map((slide) => ({
       id: slide.id,
@@ -404,8 +502,12 @@ function toUpdateDeckRequest(deck: PresentationDeck): UpdateDeckRequest {
       bodyText: slide.bodyText,
       speakerNotes: slide.speakerNotes,
       sectionLabel: slide.sectionLabel,
+      backgroundColor: slide.backgroundColor,
+      backgroundStyleType: slide.backgroundStyleType || "SOLID",
+      showGrid: slide.showGrid ?? true,
       layoutType: slide.layoutType,
-      elements: slide.elements.map((element) => ({
+      templateType: slide.templateType,
+      elements: normalizeElements(slide.elements).map((element) => ({
         id: element.id,
         elementType: element.elementType,
         role: element.role,
@@ -414,11 +516,20 @@ function toUpdateDeckRequest(deck: PresentationDeck): UpdateDeckRequest {
         y: element.y,
         width: element.width,
         height: element.height,
+        zIndex: element.zIndex ?? element.elementOrder,
+        rotationDegrees: element.rotationDegrees,
+        fillColor: element.fillColor,
+        borderColor: element.borderColor,
+        borderWidth: element.borderWidth,
+        textColor: element.textColor,
         fontFamily: element.fontFamily,
         fontSize: element.fontSize,
         bold: element.bold,
         italic: element.italic,
+        underline: element.underline,
         textAlignment: element.textAlignment,
+        shapeType: element.shapeType,
+        hidden: element.hidden ?? false,
       })),
       hidden: slide.hidden,
     })),
@@ -428,9 +539,10 @@ function toUpdateDeckRequest(deck: PresentationDeck): UpdateDeckRequest {
 function synchronizeSlide(slide: PresentationSlide): PresentationSlide {
   const titleElement = slide.elements.find((element) => element.role === "TITLE");
   const sectionElement = slide.elements.find((element) => element.role === "SECTION_LABEL");
-  const bodyElement = slide.elements.find((element) => element.role === "BODY");
+  const bodyElement = slide.elements.find((element) => element.role === "BODY" || element.role === "BODY_BULLETS");
   return {
     ...slide,
+    elements: normalizeElements(slide.elements),
     title: titleElement?.textContent?.trim() || slide.title || "Untitled slide",
     sectionLabel: sectionElement?.textContent?.trim() || null,
     bodyText: bodyElement?.textContent?.trim() || null,
@@ -450,6 +562,7 @@ function extractBullets(text: string) {
 function buildTextBox(
   slideId: string,
   elementOrder: number,
+  zIndex: number,
   overrides: {
     textContent: string;
     role: SlideElementRole;
@@ -457,10 +570,12 @@ function buildTextBox(
     y: number;
     width: number;
     height: number;
+    textColor?: string;
     fontFamily?: string;
     fontSize?: number;
     bold?: boolean;
     italic?: boolean;
+    underline?: boolean;
     textAlignment?: PresentationSlideElement["textAlignment"];
   }
 ): PresentationSlideElement {
@@ -476,11 +591,57 @@ function buildTextBox(
     y: overrides.y,
     width: overrides.width,
     height: overrides.height,
+    zIndex,
+    rotationDegrees: 0,
+    fillColor: "#ffffff",
+    borderColor: "#cbd5e1",
+    borderWidth: 0,
+    textColor: overrides.textColor || "#0f172a",
     fontFamily: overrides.fontFamily || "Aptos",
     fontSize: overrides.fontSize || 24,
     bold: overrides.bold ?? false,
     italic: overrides.italic ?? false,
+    underline: overrides.underline ?? false,
     textAlignment: overrides.textAlignment || "LEFT",
+    hidden: false,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function buildShape(
+  slideId: string,
+  elementOrder: number,
+  zIndex: number,
+  shapeType: ShapeType,
+  overrides?: Partial<PresentationSlideElement>
+): PresentationSlideElement {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    slideId,
+    elementOrder,
+    elementType: "SHAPE",
+    role: "FREEFORM",
+    textContent: overrides?.textContent || "",
+    x: overrides?.x ?? 320,
+    y: overrides?.y ?? 160,
+    width: overrides?.width ?? (shapeType === "LINE" ? 240 : 220),
+    height: overrides?.height ?? (shapeType === "LINE" ? 24 : 140),
+    zIndex,
+    rotationDegrees: overrides?.rotationDegrees ?? 0,
+    fillColor: overrides?.fillColor || "#dbeafe",
+    borderColor: overrides?.borderColor || "#2563eb",
+    borderWidth: overrides?.borderWidth ?? 2,
+    textColor: overrides?.textColor || "#0f172a",
+    fontFamily: overrides?.fontFamily || "Aptos",
+    fontSize: overrides?.fontSize || 22,
+    bold: overrides?.bold ?? false,
+    italic: overrides?.italic ?? false,
+    underline: overrides?.underline ?? false,
+    textAlignment: overrides?.textAlignment || "CENTER",
+    shapeType,
+    hidden: false,
     createdAt: now,
     updatedAt: now,
   };
@@ -496,4 +657,39 @@ function reorderSlideIds(slideIds: string[], sourceSlideId: string, targetSlideI
   const [moved] = next.splice(sourceIndex, 1);
   next.splice(targetIndex, 0, moved);
   return next;
+}
+
+function normalizeDeck(deck: PresentationDeck): PresentationDeck {
+  const theme = deck.theme || resolvePresentationTheme(deck.themeId);
+  return {
+    ...deck,
+    theme,
+    themeDisplayName: deck.themeDisplayName || theme.displayName,
+    themeId: deck.themeId || theme.themeId,
+    slides: deck.slides.map((slide, index) => ({
+      ...slide,
+      backgroundStyleType: slide.backgroundStyleType || "SOLID",
+      showGrid: slide.showGrid ?? true,
+      slideOrder: index,
+      elements: normalizeElements(slide.elements),
+    })),
+  };
+}
+
+function normalizeElements(elements: PresentationSlideElement[]) {
+  return [...elements]
+    .sort((left, right) => (left.zIndex ?? left.elementOrder) - (right.zIndex ?? right.elementOrder))
+    .map((element, index) => ({
+      ...element,
+      borderWidth: element.borderWidth ?? (element.elementType === "SHAPE" ? 2 : 0),
+      elementOrder: index,
+      hidden: element.hidden ?? false,
+      textAlignment: element.textAlignment || "LEFT",
+      underline: element.underline ?? false,
+      zIndex: index,
+    }));
+}
+
+function selectedDeckTheme(deck: PresentationDeck | null) {
+  return resolvePresentationTheme(deck?.themeId || deck?.theme?.themeId);
 }

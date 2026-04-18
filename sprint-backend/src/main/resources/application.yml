@@ -47,6 +47,14 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [corr:%X{correlationId:-}] [ws:%X{workspaceId:-}] [job:%X{jobId:-}] [sprint:%X{sprintId:-}] %logger{36} - %msg%n"
 
 app:
+  auth:
+    cookie-name: ${APP_AUTH_COOKIE_NAME:SPRINT_SESSION}
+    session-ttl: ${APP_AUTH_SESSION_TTL:P30D}
+    login-state-ttl: ${APP_AUTH_LOGIN_STATE_TTL:PT15M}
+    jira-login-redirect-uri: ${APP_AUTH_JIRA_LOGIN_REDIRECT_URI:http://localhost:8080/api/jira/oauth/callback}
+    default-post-login-path: ${APP_AUTH_DEFAULT_POST_LOGIN_PATH:/workspaces}
+    cookie-secure: ${APP_AUTH_COOKIE_SECURE:false}
+    cookie-same-site: ${APP_AUTH_COOKIE_SAME_SITE:Lax}
   jira:
     oauth:
       client-id: ${APP_JIRA_OAUTH_CLIENT_ID}

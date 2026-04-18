@@ -9,5 +9,7 @@ public interface JiraChangelogEventRepository extends JpaRepository<JiraChangelo
 
     void deleteByJiraIssue_Id(UUID jiraIssueId);
 
+    void deleteByJiraIssue_JiraConnection_Id(UUID jiraConnectionId);
+
     List<JiraChangelogEventEntity> findByJiraIssue_IdOrderByChangedAtAsc(UUID jiraIssueId);
 }

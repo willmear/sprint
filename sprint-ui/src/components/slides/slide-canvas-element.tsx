@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { ShapeElement } from "@/components/slides/shape-element";
 import { TextBoxElement } from "@/components/slides/text-box-element";
 import type { ResizeHandle } from "@/components/slides/selection-overlay";
 import type { PresentationSlideElement } from "@/types/presentation";
@@ -46,24 +47,28 @@ export function SlideCanvasElement({
   const [interaction, setInteraction] = useState<InteractionState>(null);
 
   useEffect(() => {
-    if (!interaction) {
+    if (interaction === null) {
       return;
     }
+    const activeInteraction = interaction;
 
     function handlePointerMove(event: PointerEvent) {
-      const dx = (event.clientX - interaction.startClientX) * (CANVAS_WIDTH / interaction.canvasRect.width);
-      const dy = (event.clientY - interaction.startClientY) * (CANVAS_HEIGHT / interaction.canvasRect.height);
+      const dx = (event.clientX - activeInteraction.startClientX) * (CANVAS_WIDTH / activeInteraction.canvasRect.width);
+      const dy = (event.clientY - activeInteraction.startClientY) * (CANVAS_HEIGHT / activeInteraction.canvasRect.height);
 
-      if (interaction.mode === "drag") {
+      if (activeInteraction.mode === "drag") {
+        const startFrame = activeInteraction.startFrame;
         onUpdateFrame(element.id, clampFrame({
-          ...interaction.startFrame,
-          x: interaction.startFrame.x + dx,
-          y: interaction.startFrame.y + dy,
+          ...startFrame,
+          x: startFrame.x + dx,
+          y: startFrame.y + dy,
         }));
         return;
       }
 
-      onUpdateFrame(element.id, resizeFrame(interaction.startFrame, interaction.handle, dx, dy));
+      const startFrame = activeInteraction.startFrame;
+      const resizeHandle = activeInteraction.handle;
+      onUpdateFrame(element.id, resizeFrame(startFrame, resizeHandle, dx, dy));
     }
 
     function handlePointerUp() {
@@ -84,12 +89,12 @@ export function SlideCanvasElement({
       left: `${(element.x / CANVAS_WIDTH) * 100}%`,
       top: `${(element.y / CANVAS_HEIGHT) * 100}%`,
       width: `${(element.width / CANVAS_WIDTH) * 100}%`,
-      zIndex: element.elementOrder + 1,
+      zIndex: (element.zIndex ?? element.elementOrder) + 1,
     }),
-    [element.elementOrder, element.height, element.width, element.x, element.y]
+    [element.elementOrder, element.height, element.width, element.x, element.y, element.zIndex]
   );
 
-  function startInteraction(mode: InteractionState["mode"], pointerEvent: React.PointerEvent<HTMLElement>, handle?: ResizeHandle) {
+  function startInteraction(mode: "drag" | "resize", pointerEvent: React.PointerEvent<HTMLElement>, handle?: ResizeHandle) {
     const canvas = pointerEvent.currentTarget.closest("[data-slide-canvas='true']");
     if (!(canvas instanceof HTMLElement)) {
       return;
@@ -97,9 +102,24 @@ export function SlideCanvasElement({
     pointerEvent.preventDefault();
     pointerEvent.stopPropagation();
     onSelect();
+    if (mode === "resize" && handle) {
+      setInteraction({
+        mode,
+        handle,
+        startClientX: pointerEvent.clientX,
+        startClientY: pointerEvent.clientY,
+        startFrame: {
+          x: element.x,
+          y: element.y,
+          width: element.width,
+          height: element.height,
+        },
+        canvasRect: canvas.getBoundingClientRect(),
+      });
+      return;
+    }
     setInteraction({
-      mode,
-      handle: handle as ResizeHandle,
+      mode: "drag",
       startClientX: pointerEvent.clientX,
       startClientY: pointerEvent.clientY,
       startFrame: {
@@ -109,19 +129,29 @@ export function SlideCanvasElement({
         height: element.height,
       },
       canvasRect: canvas.getBoundingClientRect(),
-    } as InteractionState);
+    });
   }
 
   return (
     <div className="absolute" style={style}>
-      <TextBoxElement
-        element={element}
-        onChange={onChange}
-        onDragStart={(event) => startInteraction("drag", event)}
-        onResizeStart={(handle, event) => startInteraction("resize", event, handle)}
-        onSelect={onSelect}
-        selected={selected}
-      />
+      {element.elementType === "SHAPE" ? (
+        <ShapeElement
+          element={element}
+          onDragStart={(event) => startInteraction("drag", event)}
+          onResizeStart={(handle, event) => startInteraction("resize", event, handle)}
+          onSelect={onSelect}
+          selected={selected}
+        />
+      ) : (
+        <TextBoxElement
+          element={element}
+          onChange={onChange}
+          onDragStart={(event) => startInteraction("drag", event)}
+          onResizeStart={(handle, event) => startInteraction("resize", event, handle)}
+          onSelect={onSelect}
+          selected={selected}
+        />
+      )}
     </div>
   );
 }

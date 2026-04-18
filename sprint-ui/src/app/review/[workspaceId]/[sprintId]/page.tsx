@@ -98,7 +98,7 @@ export default function ReviewPage({
   async function runReviewFlow() {
     if (!activeConnection?.id) {
       setGenerationPhase("failed");
-      setGenerationMessage("No Jira connection is available for this workspace. Connect Jira before generating a review.");
+      setGenerationMessage("No Jira workspace connection is available. Authorize Jira for this workspace before generating review.");
       return;
     }
 
@@ -186,7 +186,7 @@ export default function ReviewPage({
           {connections.isLoading ? <p className="mt-4 text-sm text-stone-600">Loading Jira connection...</p> : null}
           {!activeConnection && !connections.isLoading ? (
             <p className="mt-4 text-sm text-rose-600">
-              No Jira connection found for this workspace. Connect Jira before generating a review.
+              No Jira workspace connection found. Authorize Jira for this workspace before generating review.
             </p>
           ) : null}
           {generationMessage ? (
@@ -241,8 +241,8 @@ export default function ReviewPage({
               <p className="text-xs uppercase tracking-[0.18em] text-stone-500">Connection</p>
               <p className="mt-2 text-sm text-stone-700">
                 {activeConnection
-                  ? `Using ${activeConnection.externalAccountDisplayName || activeConnection.baseUrl} for the Jira sync step.`
-                  : "No active Jira connection selected."}
+                  ? `Using ${activeConnection.externalAccountDisplayName || activeConnection.baseUrl} for workspace Jira sync.`
+                  : "No active Jira workspace connection selected."}
               </p>
             </div>
           </div>

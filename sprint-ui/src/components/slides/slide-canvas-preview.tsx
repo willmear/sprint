@@ -67,28 +67,33 @@ export function SlideCanvasPreview({
   }, []);
 
   useEffect(() => {
-    if (!interaction || !slide || previewMode) {
+    if (interaction === null || !slide || previewMode) {
       return;
     }
+    const activeInteraction = interaction;
 
     function handlePointerMove(event: PointerEvent) {
       if (!shellRef.current) {
         return;
       }
-      const deltaX = (event.clientX - interaction.startClientX) / scale;
-      const deltaY = (event.clientY - interaction.startClientY) / scale;
-      if (interaction.type === "drag") {
-        onUpdateElement(interaction.elementId, (element) => ({
+      const deltaX = (event.clientX - activeInteraction.startClientX) / scale;
+      const deltaY = (event.clientY - activeInteraction.startClientY) / scale;
+      if (activeInteraction.type === "drag") {
+        const originX = activeInteraction.originX;
+        const originY = activeInteraction.originY;
+        onUpdateElement(activeInteraction.elementId, (element) => ({
           ...element,
-          x: clamp(element.width, interaction.originX + deltaX, CANVAS_WIDTH),
-          y: clamp(element.height, interaction.originY + deltaY, CANVAS_HEIGHT),
+          x: clamp(element.width, originX + deltaX, CANVAS_WIDTH),
+          y: clamp(element.height, originY + deltaY, CANVAS_HEIGHT),
         }));
         return;
       }
-      onUpdateElement(interaction.elementId, (element) => ({
+      const originWidth = activeInteraction.originWidth;
+      const originHeight = activeInteraction.originHeight;
+      onUpdateElement(activeInteraction.elementId, (element) => ({
         ...element,
-        width: Math.max(120, Math.min(CANVAS_WIDTH - element.x, interaction.originWidth + deltaX)),
-        height: Math.max(56, Math.min(CANVAS_HEIGHT - element.y, interaction.originHeight + deltaY)),
+        width: Math.max(120, Math.min(CANVAS_WIDTH - element.x, originWidth + deltaX)),
+        height: Math.max(56, Math.min(CANVAS_HEIGHT - element.y, originHeight + deltaY)),
       }));
     }
 

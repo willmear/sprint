@@ -31,10 +31,10 @@ export function JiraConnectionForm({ workspaceId }: { workspaceId: string }) {
         />
       </div>
       <Button disabled={startOAuth.isPending} type="submit">
-        {startOAuth.isPending ? "Starting..." : "Connect Jira"}
+        {startOAuth.isPending ? "Starting..." : "Authorize Jira access"}
       </Button>
       {startOAuth.error ? <p className="text-sm text-rose-600">{startOAuth.error.message}</p> : null}
-      <p className="text-sm text-stone-600">This sends you to Atlassian OAuth and returns you to this workspace when the flow completes.</p>
+      <p className="text-sm text-stone-600">This sends you to Atlassian OAuth and returns you here when workspace authorization completes.</p>
     </form>
   );
 }

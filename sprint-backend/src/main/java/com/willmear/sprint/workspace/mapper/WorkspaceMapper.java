@@ -12,6 +12,7 @@ public class WorkspaceMapper {
     public Workspace toDomain(WorkspaceEntity entity) {
         return new Workspace(
                 entity.getId(),
+                entity.getOwner() != null ? entity.getOwner().getId() : null,
                 entity.getName(),
                 entity.getDescription(),
                 entity.getCreatedAt(),

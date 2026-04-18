@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Input } from "@/components/ui/input";
+import { PRESENTATION_THEMES } from "@/lib/presentation-themes";
 import type { DeckStatus } from "@/types/presentation";
 
 const deckStatuses: DeckStatus[] = ["DRAFT", "READY", "ARCHIVED"];
@@ -8,29 +9,33 @@ const deckStatuses: DeckStatus[] = ["DRAFT", "READY", "ARCHIVED"];
 export function SlideEditorTopBar({
   title,
   subtitle,
+  themeId,
   status,
   dirty,
   savePending,
   reviewHref,
   onTitleChange,
   onSubtitleChange,
+  onThemeChange,
   onStatusChange,
   onSave,
 }: {
   title: string;
   subtitle?: string | null;
+  themeId?: string | null;
   status: DeckStatus;
   dirty: boolean;
   savePending?: boolean;
   reviewHref: string;
   onTitleChange: (value: string) => void;
   onSubtitleChange: (value: string) => void;
+  onThemeChange: (value: string) => void;
   onStatusChange: (value: DeckStatus) => void;
   onSave: () => void;
 }) {
   return (
     <header className="border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="flex h-16 items-center gap-4 px-5">
+      <div className="flex min-h-16 items-center gap-4 px-5 py-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Presentation Editor</span>
@@ -40,12 +45,12 @@ export function SlideEditorTopBar({
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_16rem]">
             <Input
-              className="h-9 rounded-md border-slate-300 bg-white text-sm font-semibold text-slate-900 shadow-none"
+              className="h-9 rounded-md border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-none"
               onChange={(event) => onTitleChange(event.target.value)}
               value={title}
             />
             <Input
-              className="h-9 rounded-md border-slate-300 bg-white text-sm text-slate-600 shadow-none"
+              className="h-9 rounded-md border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 shadow-none"
               onChange={(event) => onSubtitleChange(event.target.value)}
               placeholder="Subtitle"
               value={subtitle || ""}
@@ -53,7 +58,18 @@ export function SlideEditorTopBar({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+        <div className="flex flex-wrap items-center gap-2 border-l border-slate-200 pl-4">
+          <select
+            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
+            onChange={(event) => onThemeChange(event.target.value)}
+            value={themeId || PRESENTATION_THEMES[0].themeId}
+          >
+            {PRESENTATION_THEMES.map((theme) => (
+              <option key={theme.themeId} value={theme.themeId}>
+                {theme.displayName}
+              </option>
+            ))}
+          </select>
           <select
             className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
             onChange={(event) => onStatusChange(event.target.value as DeckStatus)}

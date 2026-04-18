@@ -9,7 +9,7 @@ public record OpenAiChatRequest(
         @JsonProperty("model")
         String model,
         @JsonProperty("messages")
-        List<OpenAiMessageDto> messages,
+        List<OpenAiRequestMessageDto> messages,
         @JsonProperty("temperature")
         Double temperature,
         @JsonProperty("max_completion_tokens")

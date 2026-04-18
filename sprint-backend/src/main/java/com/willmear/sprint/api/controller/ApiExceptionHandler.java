@@ -1,8 +1,12 @@
 package com.willmear.sprint.api.controller;
 
 import com.willmear.sprint.common.exception.BadRequestException;
+import com.willmear.sprint.common.exception.InvalidAuthSessionException;
 import com.willmear.sprint.common.exception.IntegrationException;
 import com.willmear.sprint.common.exception.NotFoundException;
+import com.willmear.sprint.common.exception.ResourceAccessDeniedException;
+import com.willmear.sprint.common.exception.UnauthenticatedException;
+import com.willmear.sprint.common.exception.WorkspaceAccessDeniedException;
 import com.willmear.sprint.common.model.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
@@ -30,6 +34,18 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> handleBadRequest(BadRequestException exception, HttpServletRequest request) {
         LOGGER.warn("api.request.bad_request path={} message={}", request.getRequestURI(), exception.getMessage());
         return build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler({UnauthenticatedException.class, InvalidAuthSessionException.class})
+    public ResponseEntity<ApiError> handleUnauthenticated(RuntimeException exception, HttpServletRequest request) {
+        LOGGER.warn("api.request.unauthenticated path={} message={}", request.getRequestURI(), exception.getMessage());
+        return build(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler({WorkspaceAccessDeniedException.class, ResourceAccessDeniedException.class})
+    public ResponseEntity<ApiError> handleForbidden(RuntimeException exception, HttpServletRequest request) {
+        LOGGER.warn("api.request.forbidden path={} message={}", request.getRequestURI(), exception.getMessage());
+        return build(HttpStatus.FORBIDDEN, "FORBIDDEN", exception.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(IntegrationException.class)

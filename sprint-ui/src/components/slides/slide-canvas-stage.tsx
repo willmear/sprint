@@ -2,11 +2,14 @@
 
 import type { PresentationSlide } from "@/types/presentation";
 import { SlideCanvasElement } from "@/components/slides/slide-canvas-element";
+import { resolvePresentationTheme } from "@/lib/presentation-themes";
+import type { PresentationThemeSummary } from "@/types/presentation";
 
 export function SlideCanvasStage({
   slide,
   deckTitle,
   deckSubtitle,
+  deckTheme,
   selectedElementId,
   onSelectElement,
   onChangeElementText,
@@ -15,6 +18,7 @@ export function SlideCanvasStage({
   slide: PresentationSlide | null;
   deckTitle: string;
   deckSubtitle?: string | null;
+  deckTheme?: PresentationThemeSummary | null;
   selectedElementId: string | null;
   onSelectElement: (elementId: string | null) => void;
   onChangeElementText: (elementId: string, text: string) => void;
@@ -28,6 +32,13 @@ export function SlideCanvasStage({
     );
   }
 
+  const theme = deckTheme || resolvePresentationTheme();
+  const backgroundColor = slide.backgroundColor || theme.colorPalette.background;
+  const canvasBorder = slide.backgroundColor ? `${slide.backgroundColor}55` : theme.colorPalette.mutedBorder;
+  const orderedElements = [...slide.elements]
+    .filter((element) => !element.hidden)
+    .sort((left, right) => (left.zIndex ?? left.elementOrder) - (right.zIndex ?? right.elementOrder));
+
   return (
     <div className="w-full max-w-[1080px]">
       <div className="mb-3 flex items-center justify-between px-1 text-xs text-slate-500">
@@ -40,12 +51,15 @@ export function SlideCanvasStage({
           data-slide-canvas="true"
           onClick={() => onSelectElement(null)}
           style={{
-            backgroundImage:
-              "linear-gradient(to right, rgba(226,232,240,0.35) 1px, transparent 1px), linear-gradient(to bottom, rgba(226,232,240,0.35) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
+            backgroundColor,
+            backgroundImage: slide.showGrid === false
+              ? "none"
+              : "linear-gradient(to right, rgba(226,232,240,0.35) 1px, transparent 1px), linear-gradient(to bottom, rgba(226,232,240,0.35) 1px, transparent 1px)",
+            backgroundSize: slide.showGrid === false ? undefined : "24px 24px",
+            borderColor: canvasBorder,
           }}
         >
-          {slide.elements.map((element) => (
+          {orderedElements.map((element) => (
             <SlideCanvasElement
               key={element.id}
               element={element}

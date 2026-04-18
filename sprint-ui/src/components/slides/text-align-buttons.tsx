@@ -27,7 +27,6 @@ export function TextAlignButtons({
             className={value === option.value ? "border-blue-500 bg-white text-blue-700 shadow-sm" : "border-transparent bg-transparent"}
             disabled={disabled}
             onClick={() => onChange(option.value)}
-            size="sm"
             type="button"
             variant="secondary"
           >

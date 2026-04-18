@@ -14,7 +14,6 @@ import com.willmear.sprint.jira.infrastructure.repository.JiraCommentRepository;
 import com.willmear.sprint.jira.infrastructure.repository.JiraIssueRepository;
 import com.willmear.sprint.jira.infrastructure.repository.JiraSprintRepository;
 import com.willmear.sprint.sprintreview.domain.port.SprintDataProviderPort;
-import com.willmear.sprint.workspace.api.WorkspaceService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,20 +22,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class LocalSprintDataProvider implements SprintDataProviderPort {
 
-    private final WorkspaceService workspaceService;
     private final JiraSprintRepository jiraSprintRepository;
     private final JiraIssueRepository jiraIssueRepository;
     private final JiraCommentRepository jiraCommentRepository;
     private final JiraChangelogEventRepository jiraChangelogEventRepository;
 
     public LocalSprintDataProvider(
-            WorkspaceService workspaceService,
             JiraSprintRepository jiraSprintRepository,
             JiraIssueRepository jiraIssueRepository,
             JiraCommentRepository jiraCommentRepository,
             JiraChangelogEventRepository jiraChangelogEventRepository
     ) {
-        this.workspaceService = workspaceService;
         this.jiraSprintRepository = jiraSprintRepository;
         this.jiraIssueRepository = jiraIssueRepository;
         this.jiraCommentRepository = jiraCommentRepository;
@@ -45,7 +41,6 @@ public class LocalSprintDataProvider implements SprintDataProviderPort {
 
     @Override
     public SprintDataBundle getSprintData(UUID workspaceId, Long externalSprintId, boolean includeComments, boolean includeChangelog) {
-        workspaceService.getWorkspace(workspaceId);
         JiraSprintEntity sprintEntity = jiraSprintRepository.findByWorkspace_IdAndExternalSprintId(workspaceId, externalSprintId)
                 .orElseThrow(() -> new SprintDataNotFoundException(workspaceId, externalSprintId));
 

@@ -26,7 +26,7 @@ Monorepo for syncing Jira sprint data, generating sprint reviews, exporting revi
 - `common`: shared primitives only
 - `config`: framework and bean wiring
 - `api`: REST entrypoints, DTOs, mappers
-- `auth`: app-auth boundary. Scaffolded only right now
+- `auth`: Atlassian/Jira-backed app login, session cookie auth, current-user resolution
 - `workspace`: workspace boundary
 - `jira`: Jira OAuth, connection mgmt, sprint sync, local Jira snapshot persistence
 - `sprintreview`: sprint review domain + orchestration
@@ -43,8 +43,13 @@ Monorepo for syncing Jira sprint data, generating sprint reviews, exporting revi
 
 ## Current Product State
 
-- App-level auth not implemented yet. Backend currently permits all requests. Current-user service returns placeholder system user.
-- Jira OAuth wired end-to-end for workspace-scoped Jira connections.
+- Jira OAuth now acts as app login.
+- Workspace pages no longer treat Jira connection as login. App login happens first, then workspace-specific Jira authorization can be added later per workspace.
+- Frontend bootstraps auth state through `/api/auth/me`.
+- Backend requires authenticated user session for workspace and workspace-bound APIs.
+- Workspaces are owned by authenticated app user and scoped per user.
+- Logout supported through session invalidation + cookie clear.
+- Jira OAuth remains wired end-to-end for workspace-scoped Jira connections.
 - Sprint sync still synchronous.
 - Sprint review generation supports direct endpoint and job entrypoint.
 - Review artifacts persist and feed export + presentation flows.
@@ -58,6 +63,9 @@ Monorepo for syncing Jira sprint data, generating sprint reviews, exporting revi
 - PostgreSQL target DB.
 - Flyway migrations live under `sprint-backend/src/main/resources/db/migration`.
 - Schema includes:
+  - `app_user`
+  - `app_session`
+  - `auth_login_state`
   - `workspace`
   - Jira OAuth + synced Jira snapshot tables
   - `job`
@@ -67,19 +75,24 @@ Monorepo for syncing Jira sprint data, generating sprint reviews, exporting revi
   - `presentation_slide_element`
 - Local datasource props override with `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 
-## Auth Caveat
+## Auth And Workspace Flow
 
-- Spring Security enabled in dependencies, but current config permits all requests.
-- Current-user service still placeholder-backed.
-- README, UI copy, product planning should treat app auth as future work, not shipped feature.
-
-## Workspace And Jira Connection Flow
-
-- Workspace endpoints:
+- App auth endpoints:
+  - `GET /api/auth/jira/login`
+  - `GET /api/auth/jira/callback`
+  - `GET /api/auth/me`
+  - `POST /api/auth/logout`
+- Jira OAuth login creates HTTP-only app session cookie.
+- User must log in before accessing user-specific workspaces.
+- Frontend redirects unauthenticated users to `/login` before workspace access.
+- UI terminology now separates app auth from workspace Jira integration:
+  - `Log in with Jira` = app login
+  - `Authorize Jira access` / `Connect Jira site` = workspace integration step
+- Workspace endpoints return only current user-owned workspaces:
   - `POST /api/workspaces`
   - `GET /api/workspaces/{workspaceId}`
   - `GET /api/workspaces`
-- Jira OAuth endpoints:
+- Workspace-scoped Jira OAuth endpoints remain:
   - `POST /api/workspaces/{workspaceId}/jira/connections/oauth/start`
   - `GET /api/jira/oauth/callback`
 - Jira connection management under `/api/workspaces/{workspaceId}/jira/connections`

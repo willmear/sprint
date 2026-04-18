@@ -11,6 +11,7 @@ import com.willmear.sprint.jobs.domain.JobStatus;
 import com.willmear.sprint.jobs.domain.JobType;
 import com.willmear.sprint.sprintreview.domain.model.SprintContext;
 import com.willmear.sprint.sprintreview.domain.model.SprintReview;
+import com.willmear.sprint.workspace.application.WorkspaceAuthorizationService;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ class SprintReviewApplicationServiceTest {
     private final GetSprintReviewUseCase getSprintReviewUseCase = mock(GetSprintReviewUseCase.class);
     private final JobService jobService = mock(JobService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final WorkspaceAuthorizationService workspaceAuthorizationService = mock(WorkspaceAuthorizationService.class);
 
     @Test
     void shouldResolveRequestDefaultsForDirectGeneration() {
@@ -39,7 +41,8 @@ class SprintReviewApplicationServiceTest {
                 getSprintReviewUseCase,
                 jobService,
                 objectMapper,
-                new SprintReviewProperties(true, false, 5, 4, true)
+                new SprintReviewProperties(true, false, 5, 4, true),
+                workspaceAuthorizationService
         );
         UUID workspaceId = UUID.randomUUID();
         SprintReview review = TestSprintReviewFactory.review(workspaceId, 55L, "DIRECT");
@@ -62,7 +65,8 @@ class SprintReviewApplicationServiceTest {
                 getSprintReviewUseCase,
                 jobService,
                 objectMapper,
-                new SprintReviewProperties(true, true, 5, 4, true)
+                new SprintReviewProperties(true, true, 5, 4, true),
+                workspaceAuthorizationService
         );
         UUID workspaceId = UUID.randomUUID();
         Job job = new Job(UUID.randomUUID(), workspaceId, JobType.GENERATE_SPRINT_REVIEW, JobStatus.PENDING, "default",
@@ -87,7 +91,8 @@ class SprintReviewApplicationServiceTest {
                 getSprintReviewUseCase,
                 jobService,
                 objectMapper,
-                new SprintReviewProperties(true, true, 5, 4, false)
+                new SprintReviewProperties(true, true, 5, 4, false),
+                workspaceAuthorizationService
         );
 
         assertThatThrownBy(() -> service.enqueueReviewGeneration(UUID.randomUUID(), 55L, null))
@@ -102,7 +107,8 @@ class SprintReviewApplicationServiceTest {
                 getSprintReviewUseCase,
                 jobService,
                 objectMapper,
-                new SprintReviewProperties(true, true, 5, 4, true)
+                new SprintReviewProperties(true, true, 5, 4, true),
+                workspaceAuthorizationService
         );
         UUID workspaceId = UUID.randomUUID();
         SprintContext context = TestSprintReviewFactory.context(workspaceId, UUID.randomUUID(), 55L);

@@ -9,6 +9,8 @@ public interface EmbeddingDocumentRepository extends JpaRepository<EmbeddingDocu
 
     boolean existsByJiraConnectionId(UUID jiraConnectionId);
 
+    int deleteByJiraConnectionId(UUID jiraConnectionId);
+
     int deleteByWorkspaceIdAndExternalSprintId(UUID workspaceId, Long externalSprintId);
 
     List<EmbeddingDocumentEntity> findByWorkspaceIdAndExternalSprintIdOrderByIndexedAtDescChunkIndexAsc(UUID workspaceId, Long externalSprintId);

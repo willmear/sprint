@@ -61,11 +61,11 @@ export default function WorkspaceDetailPage({ params }: { params: Promise<{ work
                 displayName={connections.data[0].externalAccountDisplayName || connections.data[0].baseUrl}
               />
               <p className="text-sm text-stone-700">
-                Logged in as {connections.data[0].externalAccountDisplayName || connections.data[0].baseUrl}
+                Connected Jira account: {connections.data[0].externalAccountDisplayName || connections.data[0].baseUrl}
               </p>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-stone-700">No Jira login yet.</p>
+            <p className="mt-3 text-sm text-stone-700">No Jira workspace connection yet.</p>
           )}
         </Card>
       </div>
@@ -75,7 +75,7 @@ export default function WorkspaceDetailPage({ params }: { params: Promise<{ work
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-2xl font-bold text-ink">Jira connections</h2>
-              <p className="mt-2 text-sm text-stone-600">Pick the active Jira account before syncing a sprint.</p>
+              <p className="mt-2 text-sm text-stone-600">Authorize Jira for this workspace before syncing a sprint.</p>
             </div>
             <Link href={`/workspaces/${workspaceId}/jira`}>
               <Button variant="secondary">Open Jira page</Button>

@@ -8,6 +8,7 @@ import com.willmear.sprint.jobs.domain.Job;
 import com.willmear.sprint.jobs.domain.JobType;
 import com.willmear.sprint.jobs.repository.JobRepositoryAdapter;
 import com.willmear.sprint.observability.metrics.WorkflowMetricsRecorder;
+import com.willmear.sprint.workspace.api.WorkspaceService;
 import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -22,18 +23,24 @@ public class CreateJobUseCase {
     private final JobRepositoryAdapter jobRepositoryAdapter;
     private final JobsProperties jobsProperties;
     private final WorkflowMetricsRecorder workflowMetricsRecorder;
+    private final WorkspaceService workspaceService;
 
     public CreateJobUseCase(
             JobRepositoryAdapter jobRepositoryAdapter,
             JobsProperties jobsProperties,
-            WorkflowMetricsRecorder workflowMetricsRecorder
+            WorkflowMetricsRecorder workflowMetricsRecorder,
+            WorkspaceService workspaceService
     ) {
         this.jobRepositoryAdapter = jobRepositoryAdapter;
         this.jobsProperties = jobsProperties;
         this.workflowMetricsRecorder = workflowMetricsRecorder;
+        this.workspaceService = workspaceService;
     }
 
     public Job create(UUID workspaceId, JobType jobType, JsonNode payload, Integer maxAttempts, Instant availableAt) {
+        if (workspaceId != null) {
+            workspaceService.getWorkspace(workspaceId);
+        }
         int resolvedMaxAttempts = maxAttempts != null ? maxAttempts : jobsProperties.defaultMaxAttempts();
         Instant resolvedAvailableAt = availableAt != null ? availableAt : Instant.now();
         JsonNode resolvedPayload = payload != null ? payload : JsonNodeFactory.instance.objectNode();

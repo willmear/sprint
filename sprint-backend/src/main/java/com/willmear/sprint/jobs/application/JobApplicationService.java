@@ -1,6 +1,8 @@
 package com.willmear.sprint.jobs.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.willmear.sprint.common.exception.ResourceAccessDeniedException;
+import com.willmear.sprint.common.exception.WorkspaceAccessDeniedException;
 import com.willmear.sprint.jobs.api.JobService;
 import com.willmear.sprint.jobs.domain.Job;
 import com.willmear.sprint.jobs.domain.JobFilter;
@@ -37,7 +39,11 @@ public class JobApplicationService implements JobService {
 
     @Override
     public Job getJob(UUID jobId) {
-        return getJobUseCase.get(jobId);
+        try {
+            return getJobUseCase.get(jobId);
+        } catch (WorkspaceAccessDeniedException exception) {
+            throw new ResourceAccessDeniedException("job", jobId, exception);
+        }
     }
 
     @Override
@@ -47,7 +53,11 @@ public class JobApplicationService implements JobService {
 
     @Override
     public Job retryJob(UUID jobId) {
-        return retryJobUseCase.retry(jobId);
+        try {
+            return retryJobUseCase.retry(jobId);
+        } catch (WorkspaceAccessDeniedException exception) {
+            throw new ResourceAccessDeniedException("job", jobId, exception);
+        }
     }
 
     @Override

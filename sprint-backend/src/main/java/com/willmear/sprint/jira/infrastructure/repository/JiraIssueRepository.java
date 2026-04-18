@@ -10,6 +10,8 @@ public interface JiraIssueRepository extends JpaRepository<JiraIssueEntity, UUID
 
     void deleteByJiraSprint_Id(UUID jiraSprintId);
 
+    void deleteByJiraConnection_Id(UUID jiraConnectionId);
+
     boolean existsByJiraConnection_Id(UUID jiraConnectionId);
 
     List<JiraIssueEntity> findByWorkspace_IdAndExternalSprintIdOrderByIssueKeyAsc(UUID workspaceId, Long externalSprintId);
