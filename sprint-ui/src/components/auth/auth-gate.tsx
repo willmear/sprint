@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useMemo } from "react";
 
 import { useAuth } from "@/lib/hooks/use-auth";
 
-const protectedPatterns = [/^\/workspaces(\/|$)/, /^\/sprints(\/|$)/, /^\/review(\/|$)/, /^\/jobs(\/|$)/];
+const protectedPatterns = [/^\/workspaces(\/|$)/, /^\/sprints(\/|$)/, /^\/review(\/|$)/, /^\/jobs(\/|$)/, /^\/profile(\/|$)/];
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();

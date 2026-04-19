@@ -55,6 +55,9 @@ app:
     default-post-login-path: ${APP_AUTH_DEFAULT_POST_LOGIN_PATH:/workspaces}
     cookie-secure: ${APP_AUTH_COOKIE_SECURE:false}
     cookie-same-site: ${APP_AUTH_COOKIE_SAME_SITE:Lax}
+  credits:
+    enabled: ${APP_CREDITS_ENABLED:true}
+    daily-generation-limit: ${APP_CREDITS_DAILY_GENERATION_LIMIT:3}
   jira:
     oauth:
       client-id: ${APP_JIRA_OAUTH_CLIENT_ID}

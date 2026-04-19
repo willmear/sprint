@@ -8,6 +8,8 @@ import com.willmear.sprint.auth.entity.AuthLoginStateEntity;
 import com.willmear.sprint.auth.repository.AppSessionRepository;
 import com.willmear.sprint.auth.repository.AppUserRepository;
 import com.willmear.sprint.auth.repository.AuthLoginStateRepository;
+import com.willmear.sprint.credits.entity.UserDailyCreditUsageEntity;
+import com.willmear.sprint.credits.repository.UserDailyCreditUsageRepository;
 import com.willmear.sprint.jira.infrastructure.entity.JiraBoardEntity;
 import com.willmear.sprint.jira.infrastructure.entity.JiraChangelogEventEntity;
 import com.willmear.sprint.jira.infrastructure.entity.JiraCommentEntity;
@@ -48,11 +50,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
-@EnableConfigurationProperties(RetrievalProperties.class)
+@EnableConfigurationProperties({RetrievalProperties.class, CreditsProperties.class})
 @EntityScan(basePackageClasses = {
         AppUserEntity.class,
         AppSessionEntity.class,
         AuthLoginStateEntity.class,
+        UserDailyCreditUsageEntity.class,
         WorkspaceEntity.class,
         JiraConnectionEntity.class,
         JiraOAuthStateEntity.class,
@@ -73,6 +76,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
         AppUserRepository.class,
         AppSessionRepository.class,
         AuthLoginStateRepository.class,
+        UserDailyCreditUsageRepository.class,
         WorkspaceRepository.class,
         JiraConnectionRepository.class,
         JiraOAuthStateRepository.class,

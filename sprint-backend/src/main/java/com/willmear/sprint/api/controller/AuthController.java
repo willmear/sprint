@@ -1,10 +1,11 @@
 package com.willmear.sprint.api.controller;
 
+import com.willmear.sprint.auth.api.response.CurrentUserResponse;
 import com.willmear.sprint.auth.api.AuthService;
 import com.willmear.sprint.auth.application.CurrentUserService;
-import com.willmear.sprint.auth.domain.AuthenticatedUser;
 import com.willmear.sprint.auth.security.SessionCookieService;
 import com.willmear.sprint.common.exception.BadRequestException;
+import com.willmear.sprint.profile.api.response.UserProfileResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import org.springframework.http.HttpHeaders;
@@ -68,11 +69,10 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<CurrentUserResponse> currentUser() {
         return ResponseEntity.ok(currentUserService.getCurrentUser()
-                .map(user -> new CurrentUserResponse(true, new CurrentUserProfile(
+                .map(user -> new CurrentUserResponse(true, new UserProfileResponse(
                         user.userId(),
-                        user.externalAccountId(),
-                        user.email(),
                         user.displayName(),
+                        user.email(),
                         user.avatarUrl(),
                         user.authProvider().name(),
                         user.lastLoginAt()
@@ -94,23 +94,6 @@ public class AuthController {
             builder.queryParam("message", message);
         }
         return builder.build(true).toUriString();
-    }
-
-    public record CurrentUserResponse(
-            boolean authenticated,
-            CurrentUserProfile user
-    ) {
-    }
-
-    public record CurrentUserProfile(
-            java.util.UUID id,
-            String externalAccountId,
-            String email,
-            String displayName,
-            String avatarUrl,
-            String authProvider,
-            java.time.Instant lastLoginAt
-    ) {
     }
 
     public record LogoutResponse(boolean success) {

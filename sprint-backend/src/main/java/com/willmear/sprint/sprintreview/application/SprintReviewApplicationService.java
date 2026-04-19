@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.willmear.sprint.api.request.GenerateSprintReviewRequest;
 import com.willmear.sprint.common.exception.BadRequestException;
 import com.willmear.sprint.config.SprintReviewProperties;
+import com.willmear.sprint.credits.api.CreditService;
+import com.willmear.sprint.credits.domain.UserCreditSummary;
 import com.willmear.sprint.jobs.api.JobService;
 import com.willmear.sprint.jobs.domain.Job;
 import com.willmear.sprint.jobs.domain.JobType;
@@ -12,10 +14,14 @@ import com.willmear.sprint.sprintreview.api.SprintReviewService;
 import com.willmear.sprint.sprintreview.domain.model.SprintContext;
 import com.willmear.sprint.sprintreview.domain.model.SprintReview;
 import com.willmear.sprint.workspace.application.WorkspaceAuthorizationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SprintReviewApplicationService implements SprintReviewService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SprintReviewApplicationService.class);
 
     private final GenerateSprintReviewUseCase generateSprintReviewUseCase;
     private final BuildSprintContextUseCase buildSprintContextUseCase;
@@ -24,6 +30,7 @@ public class SprintReviewApplicationService implements SprintReviewService {
     private final ObjectMapper objectMapper;
     private final SprintReviewProperties sprintReviewProperties;
     private final WorkspaceAuthorizationService workspaceAuthorizationService;
+    private final CreditService creditService;
 
     public SprintReviewApplicationService(
             GenerateSprintReviewUseCase generateSprintReviewUseCase,
@@ -32,7 +39,8 @@ public class SprintReviewApplicationService implements SprintReviewService {
             JobService jobService,
             ObjectMapper objectMapper,
             SprintReviewProperties sprintReviewProperties,
-            WorkspaceAuthorizationService workspaceAuthorizationService
+            WorkspaceAuthorizationService workspaceAuthorizationService,
+            CreditService creditService
     ) {
         this.generateSprintReviewUseCase = generateSprintReviewUseCase;
         this.buildSprintContextUseCase = buildSprintContextUseCase;
@@ -41,11 +49,13 @@ public class SprintReviewApplicationService implements SprintReviewService {
         this.objectMapper = objectMapper;
         this.sprintReviewProperties = sprintReviewProperties;
         this.workspaceAuthorizationService = workspaceAuthorizationService;
+        this.creditService = creditService;
     }
 
     @Override
     public SprintReview generateReview(java.util.UUID workspaceId, Long externalSprintId, GenerateSprintReviewRequest request) {
         workspaceAuthorizationService.ensureCanAccessWorkspace(workspaceId);
+        consumeGenerationCredit(workspaceId, externalSprintId, "DIRECT");
         return generateSprintReviewUseCase.generate(workspaceId, externalSprintId, resolveRequest(request), "DIRECT");
     }
 
@@ -68,6 +78,7 @@ public class SprintReviewApplicationService implements SprintReviewService {
         if (!sprintReviewProperties.enableJobEntrypoint()) {
             throw new BadRequestException("Sprint review job entrypoint is disabled.");
         }
+        consumeGenerationCredit(workspaceId, externalSprintId, "JOB");
 
         ObjectNode payload = objectMapper.createObjectNode();
         payload.put("workspaceId", workspaceId.toString());
@@ -83,6 +94,21 @@ public class SprintReviewApplicationService implements SprintReviewService {
         }
 
         return jobService.createJob(workspaceId, JobType.GENERATE_SPRINT_REVIEW, payload, null, null);
+    }
+
+    private void consumeGenerationCredit(java.util.UUID workspaceId, Long externalSprintId, String generationSource) {
+        // V1 rule: a credit is consumed when a user request enters the review generation flow,
+        // including requests that enqueue a generation job.
+        UserCreditSummary summary = creditService.consumeCurrentUserGenerationCredit();
+        LOGGER.info(
+                "sprintreview.credits.consumed workspaceId={} sprintId={} generationSource={} usedToday={} remainingToday={} dailyLimit={}",
+                workspaceId,
+                externalSprintId,
+                generationSource,
+                summary.usedToday(),
+                summary.remainingToday(),
+                summary.dailyLimit()
+        );
     }
 
     private GenerateSprintReviewRequest resolveRequest(GenerateSprintReviewRequest request) {

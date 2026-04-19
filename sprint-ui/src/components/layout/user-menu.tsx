@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,9 @@ export function UserMenu({ user }: { user: AuthUser }) {
           <p className="truncate text-sm font-semibold text-ink">{user.displayName}</p>
           <p className="truncate text-xs text-stone-500">{user.email || "Atlassian account"}</p>
         </div>
+        <Link className="rounded-full px-3 py-2 text-sm font-semibold text-ink transition hover:bg-white/70" href="/profile">
+          Profile
+        </Link>
         <Button disabled={logout.isPending} variant="ghost" onClick={() => void handleLogout()}>
           {logout.isPending ? "Logging out..." : "Log out"}
         </Button>

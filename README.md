@@ -49,6 +49,7 @@ Monorepo for syncing Jira sprint data, generating sprint reviews, exporting revi
 - Backend requires authenticated user session for workspace and workspace-bound APIs.
 - Workspaces are owned by authenticated app user and scoped per user.
 - Logout supported through session invalidation + cookie clear.
+- Sprint review generation now has per-user daily credits, default `3/day`, using UTC day boundaries.
 - Jira OAuth remains wired end-to-end for workspace-scoped Jira connections.
 - Sprint sync still synchronous.
 - Sprint review generation supports direct endpoint and job entrypoint.
@@ -131,6 +132,10 @@ Monorepo for syncing Jira sprint data, generating sprint reviews, exporting revi
 - AI path uses OpenAI when enabled
 - Placeholder path remains fallback when AI disabled/fails
 - Generated review persists as artifact, reused by export + presentation features
+- Daily sprint review generation allowance defaults to `3` per authenticated user per day
+- Local/dev override with:
+  - `APP_CREDITS_DAILY_GENERATION_LIMIT=10`
+  - `APP_CREDITS_ENABLED=true`
 
 ## Artifact Persistence
 
@@ -200,6 +205,17 @@ Monorepo for syncing Jira sprint data, generating sprint reviews, exporting revi
   - Next.js UI
 - Backend allows local frontend origin with `APP_UI_ALLOWED_ORIGIN`, default `http://localhost:3000`
 - Jira OAuth local env uses `APP_JIRA_OAUTH_*`
+- Credits local env uses:
+  - `APP_CREDITS_DAILY_GENERATION_LIMIT=10`
+  - `APP_CREDITS_ENABLED=true`
+- Docker Compose backend service forwards both credit env vars, so local override can come from shell env or `.env`
+
+Example `.env` for Compose:
+
+```bash
+APP_CREDITS_ENABLED=true
+APP_CREDITS_DAILY_GENERATION_LIMIT=20
+```
 
 Run full stack from repo root:
 

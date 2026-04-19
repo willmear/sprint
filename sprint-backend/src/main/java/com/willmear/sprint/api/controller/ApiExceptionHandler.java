@@ -2,6 +2,7 @@ package com.willmear.sprint.api.controller;
 
 import com.willmear.sprint.common.exception.BadRequestException;
 import com.willmear.sprint.common.exception.InvalidAuthSessionException;
+import com.willmear.sprint.common.exception.InsufficientDailyCreditsException;
 import com.willmear.sprint.common.exception.IntegrationException;
 import com.willmear.sprint.common.exception.NotFoundException;
 import com.willmear.sprint.common.exception.ResourceAccessDeniedException;
@@ -46,6 +47,12 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> handleForbidden(RuntimeException exception, HttpServletRequest request) {
         LOGGER.warn("api.request.forbidden path={} message={}", request.getRequestURI(), exception.getMessage());
         return build(HttpStatus.FORBIDDEN, "FORBIDDEN", exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(InsufficientDailyCreditsException.class)
+    public ResponseEntity<ApiError> handleQuotaExceeded(InsufficientDailyCreditsException exception, HttpServletRequest request) {
+        LOGGER.warn("api.request.quota_exceeded path={} message={}", request.getRequestURI(), exception.getMessage());
+        return build(HttpStatus.TOO_MANY_REQUESTS, "DAILY_CREDIT_LIMIT_REACHED", exception.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(IntegrationException.class)

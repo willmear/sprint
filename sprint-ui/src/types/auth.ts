@@ -1,6 +1,5 @@
 export interface AuthUser {
   id: string;
-  externalAccountId: string;
   email?: string | null;
   displayName: string;
   avatarUrl?: string | null;
