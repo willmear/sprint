@@ -1,5 +1,6 @@
 "use client";
 
+import { resolveElementPreviewStyle, resolveSlideChrome } from "@/lib/presentation-preview";
 import type { PresentationSlide } from "@/types/presentation";
 import { SlideCanvasElement } from "@/components/slides/slide-canvas-element";
 import { resolvePresentationTheme } from "@/lib/presentation-themes";
@@ -33,7 +34,8 @@ export function SlideCanvasStage({
   }
 
   const theme = deckTheme || resolvePresentationTheme();
-  const backgroundColor = slide.backgroundColor || theme.colorPalette.background;
+  const chrome = resolveSlideChrome(theme, slide);
+  const backgroundColor = chrome.backgroundColor;
   const canvasBorder = slide.backgroundColor ? `${slide.backgroundColor}55` : theme.colorPalette.mutedBorder;
   const orderedElements = [...slide.elements]
     .filter((element) => !element.hidden)
@@ -59,10 +61,21 @@ export function SlideCanvasStage({
             borderColor: canvasBorder,
           }}
         >
+          <div className="absolute inset-0" style={{ backgroundColor }} />
+          {chrome.fullBleedHeaderAccent ? (
+            <div className="absolute left-0 top-0 w-full" style={{ backgroundColor: chrome.accentColor, height: "5.8333%" }} />
+          ) : null}
+          {chrome.leftAccentRail ? (
+            <div className="absolute left-0 top-0 h-full" style={{ backgroundColor: chrome.accentColor, width: "1.40625%" }} />
+          ) : null}
+          {chrome.fullBleedBottomAccent ? (
+            <div className="absolute bottom-0 left-0 w-full" style={{ backgroundColor: chrome.accentColor, height: "4.4444%" }} />
+          ) : null}
           {orderedElements.map((element) => (
             <SlideCanvasElement
               key={element.id}
               element={element}
+              previewStyle={resolveElementPreviewStyle(theme, slide, element)}
               onChange={(text) => onChangeElementText(element.id, text)}
               onSelect={() => onSelectElement(element.id)}
               onUpdateFrame={onUpdateElementFrame}

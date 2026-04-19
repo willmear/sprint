@@ -20,6 +20,10 @@ export function ShapeElement({
   return (
     <div
       className={cn("group relative flex h-full w-full items-center justify-center", selected ? "cursor-move" : "cursor-pointer")}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
       onMouseDown={(event) => event.stopPropagation()}
       onPointerDown={(event) => {
         if (event.button !== 0) {

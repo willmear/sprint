@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 
 import { SelectionOverlay, type ResizeHandle } from "@/components/slides/selection-overlay";
 import { cn } from "@/lib/utils/cn";
+import type { ElementPreviewStyle } from "@/lib/presentation-preview";
 import type { PresentationSlideElement } from "@/types/presentation";
 
 export function TextBoxElement({
   element,
+  previewStyle,
   selected,
   onSelect,
   onChange,
@@ -15,6 +17,7 @@ export function TextBoxElement({
   onResizeStart,
 }: {
   element: PresentationSlideElement;
+  previewStyle?: ElementPreviewStyle;
   selected: boolean;
   onSelect: () => void;
   onChange: (text: string) => void;
@@ -71,6 +74,10 @@ export function TextBoxElement({
           return;
         }
         event.stopPropagation();
+        if (!selected) {
+          onSelect();
+          return;
+        }
         onSelect();
         onDragStart(event);
       }}
@@ -78,8 +85,8 @@ export function TextBoxElement({
       <div
         ref={editorRef}
         className={cn(
-          "h-full w-full overflow-hidden rounded-[2px] border border-transparent bg-transparent px-2 py-1 outline-none transition",
-          selected ? "bg-blue-50/35" : "hover:border-slate-200 hover:bg-white/70",
+          "h-full w-full overflow-hidden border px-2 py-1 outline-none transition",
+          selected ? "" : "hover:border-slate-200",
           selected && isEditing ? "cursor-text" : "cursor-inherit"
         )}
         contentEditable={selected && isEditing}
@@ -102,9 +109,13 @@ export function TextBoxElement({
         spellCheck={false}
         suppressContentEditableWarning
         style={{
-          color: element.textColor || "#0f172a",
-          fontFamily: element.fontFamily,
-          fontSize: `${element.fontSize}px`,
+          backgroundColor: previewStyle?.backgroundColor || element.fillColor || "transparent",
+          borderColor: previewStyle?.borderColor || element.borderColor || "transparent",
+          borderRadius: previewStyle?.borderRadius || "2px",
+          borderWidth: `${previewStyle?.borderWidth ?? element.borderWidth ?? 0}px`,
+          color: previewStyle?.textColor || element.textColor || "#0f172a",
+          fontFamily: previewStyle?.fontFamily || element.fontFamily,
+          fontSize: `${previewStyle?.fontSize || element.fontSize}px`,
           fontStyle: element.italic ? "italic" : "normal",
           fontWeight: element.bold ? 700 : 400,
           letterSpacing: element.role === "TITLE" ? "-0.02em" : "0",

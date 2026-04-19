@@ -6,6 +6,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import { SlideEditorShell } from "@/components/slides/slide-editor-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { downloadBlob } from "@/lib/export-client";
 import { resolvePresentationTheme } from "@/lib/presentation-themes";
 import { ApiError } from "@/lib/api/client";
 import {
@@ -16,6 +17,7 @@ import {
   useReorderSlides,
   useSavePresentationDeck,
 } from "@/lib/hooks/use-presentation";
+import { exportService } from "@/services/export.service";
 import type {
   AddSlideRequest,
   PresentationDeck,
@@ -51,6 +53,7 @@ export default function SlideEditorPage({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [editorMessage, setEditorMessage] = useState<string | null>(null);
+  const [exportPending, setExportPending] = useState(false);
 
   useEffect(() => {
     if (!deckQuery.data) {
@@ -150,12 +153,12 @@ export default function SlideEditorPage({
   function handleChangeDeckTheme(themeId: string) {
     updateDraft((current) => {
       const theme = resolvePresentationTheme(themeId);
-      return {
+      return applyThemeToDeck({
         ...current,
         theme,
         themeDisplayName: theme.displayName,
         themeId,
-      };
+      }, theme);
     });
   }
 
@@ -193,7 +196,12 @@ export default function SlideEditorPage({
   }
 
   function handleSelectedElementChange(
-    updates: Partial<Pick<PresentationSlideElement, "textContent" | "x" | "y" | "width" | "height" | "fillColor" | "borderColor" | "borderWidth" | "textColor">>
+    updates: Partial<
+      Pick<
+        PresentationSlideElement,
+        "role" | "textContent" | "fontFamily" | "fontSize" | "bold" | "italic" | "underline" | "textAlignment" | "x" | "y" | "width" | "height" | "fillColor" | "borderColor" | "borderWidth" | "textColor"
+      >
+    >
   ) {
     if (!selectedElementId) {
       return;
@@ -202,7 +210,31 @@ export default function SlideEditorPage({
       handleChangeElementText(selectedElementId, updates.textContent);
       return;
     }
+    if (updates.role !== undefined) {
+      handleSetElementRole(updates.role);
+      return;
+    }
     updateSelectedElement(updates);
+  }
+
+  function handleSetElementRole(role: SlideElementRole) {
+    if (!selectedElementId || !selectedElement) {
+      return;
+    }
+    updateCurrentSlide((slide) =>
+      synchronizeSlide({
+        ...slide,
+        elements: slide.elements.map((element) =>
+          element.id === selectedElementId
+            ? {
+                ...element,
+                role,
+                textContent: role === "BODY_BULLETS" ? ensureBulletText(element.textContent) : stripBulletText(element.textContent),
+              }
+            : element
+        ),
+      })
+    );
   }
 
   function handleSlideStyleChange(updates: Partial<Pick<PresentationSlide, "backgroundColor" | "showGrid">>) {
@@ -306,7 +338,7 @@ export default function SlideEditorPage({
     [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
     updateCurrentSlide((slide) => ({
       ...slide,
-      elements: normalizeElements(next),
+      elements: reindexElements(next),
     }));
   }
 
@@ -319,14 +351,41 @@ export default function SlideEditorPage({
       return;
     }
     try {
-      const saved = await saveDeck.mutateAsync({
-        deckId: draftDeck.id,
-        payload: toUpdateDeckRequest(draftDeck),
-      });
+      const saved = await saveCurrentDeck(draftDeck);
       replaceDraft(saved, selectedSlide?.id ?? null);
       setEditorMessage("Deck saved.");
     } catch (error) {
       setEditorMessage(error instanceof Error ? error.message : "Failed to save deck.");
+    }
+  }
+
+  async function saveCurrentDeck(deck: PresentationDeck) {
+    return saveDeck.mutateAsync({
+      deckId: deck.id,
+      payload: toUpdateDeckRequest(deck),
+    });
+  }
+
+  async function handleExportPowerPoint() {
+    if (!draftDeck) {
+      return;
+    }
+    setEditorMessage(null);
+    setExportPending(true);
+    try {
+      let deckForExport = draftDeck;
+      if (dirty) {
+        const saved = await saveCurrentDeck(draftDeck);
+        replaceDraft(saved, selectedSlide?.id ?? null);
+        deckForExport = saved;
+      }
+      const exported = await exportService.exportDeckAsPowerPoint(workspaceId, deckForExport.id);
+      downloadBlob(exported.fileName, exported.blob);
+      setEditorMessage("PowerPoint exported.");
+    } catch (error) {
+      setEditorMessage(error instanceof Error ? error.message : "Failed to export PowerPoint.");
+    } finally {
+      setExportPending(false);
     }
   }
 
@@ -453,6 +512,7 @@ export default function SlideEditorPage({
         <SlideEditorShell
           deck={draftDeck}
           dirty={dirty}
+          exportPending={exportPending}
           onAddShape={handleAddShape}
           onAddSlide={handleAddSlide}
           onAddTextBox={handleAddTextBox}
@@ -465,11 +525,13 @@ export default function SlideEditorPage({
           onDeleteSlide={() => void handleDeleteSlide()}
           onDuplicateElement={handleDuplicateElement}
           onDuplicateSlide={() => void handleDuplicateSlide()}
+          onExportPowerPoint={() => void handleExportPowerPoint()}
           onLayerBackward={() => handleMoveLayer("backward")}
           onLayerForward={() => handleMoveLayer("forward")}
           onReorderSlides={(sourceSlideId, targetSlideId) => void handleReorderSlides(sourceSlideId, targetSlideId)}
           onSave={() => void handleSave()}
           onSelectedElementChange={handleSelectedElementChange}
+          onSetElementRole={handleSetElementRole}
           onSelectElement={setSelectedElementId}
           onSelectSlide={handleSelectSlide}
           onSlideStyleChange={handleSlideStyleChange}
@@ -559,6 +621,24 @@ function extractBullets(text: string) {
     .filter(Boolean);
 }
 
+function ensureBulletText(text: string) {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) {
+    return "• Bullet point";
+  }
+  return lines.map((line) => (line.startsWith("•") || line.startsWith("-") || line.startsWith("*") ? line.replace(/^[\-*]\s*/, "• ") : `• ${line}`)).join("\n");
+}
+
+function stripBulletText(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^[•\-*]\s*/, ""))
+    .join("\n");
+}
+
 function buildTextBox(
   slideId: string,
   elementOrder: number,
@@ -593,8 +673,8 @@ function buildTextBox(
     height: overrides.height,
     zIndex,
     rotationDegrees: 0,
-    fillColor: "#ffffff",
-    borderColor: "#cbd5e1",
+    fillColor: "transparent",
+    borderColor: "transparent",
     borderWidth: 0,
     textColor: overrides.textColor || "#0f172a",
     fontFamily: overrides.fontFamily || "Aptos",
@@ -679,17 +759,72 @@ function normalizeDeck(deck: PresentationDeck): PresentationDeck {
 function normalizeElements(elements: PresentationSlideElement[]) {
   return [...elements]
     .sort((left, right) => (left.zIndex ?? left.elementOrder) - (right.zIndex ?? right.elementOrder))
-    .map((element, index) => ({
-      ...element,
-      borderWidth: element.borderWidth ?? (element.elementType === "SHAPE" ? 2 : 0),
-      elementOrder: index,
-      hidden: element.hidden ?? false,
-      textAlignment: element.textAlignment || "LEFT",
-      underline: element.underline ?? false,
-      zIndex: index,
-    }));
+    .map((element, index) => normalizeElement(element, index));
 }
 
 function selectedDeckTheme(deck: PresentationDeck | null) {
   return resolvePresentationTheme(deck?.themeId || deck?.theme?.themeId);
+}
+
+function reindexElements(elements: PresentationSlideElement[]) {
+  return elements.map((element, index) => normalizeElement(element, index));
+}
+
+function normalizeElement(element: PresentationSlideElement, index: number): PresentationSlideElement {
+  return {
+    ...element,
+    borderWidth: element.borderWidth ?? (element.elementType === "SHAPE" ? 2 : 0),
+    elementOrder: index,
+    hidden: element.hidden ?? false,
+    textAlignment: element.textAlignment || "LEFT",
+    underline: element.underline ?? false,
+    zIndex: index,
+  };
+}
+
+function applyThemeToDeck(deck: PresentationDeck, theme = resolvePresentationTheme(deck.themeId || deck.theme?.themeId)) {
+  return {
+    ...deck,
+    theme,
+    themeDisplayName: theme.displayName,
+    themeId: theme.themeId,
+    slides: deck.slides.map((slide) => ({
+      ...slide,
+      backgroundColor: theme.colorPalette.background,
+      elements: normalizeElements(
+        slide.elements.map((element) => {
+          if (element.elementType === "SHAPE") {
+            return {
+              ...element,
+              fillColor: theme.colorPalette.accent + "22",
+              borderColor: theme.colorPalette.accent,
+              textColor: theme.colorPalette.textPrimary,
+              fontFamily: theme.typography.bodyFontFamily,
+              fontSize: element.fontSize || theme.typography.bodyFontSize,
+            };
+          }
+
+          const nextRole = element.role;
+          const isTitle = nextRole === "TITLE";
+          const isSubtitle = nextRole === "SUBTITLE" || nextRole === "SECTION_LABEL";
+          const isSmall = nextRole === "FOOTER";
+
+          return {
+            ...element,
+            fillColor: "transparent",
+            borderColor: "transparent",
+            textColor: isTitle ? theme.colorPalette.textPrimary : isSubtitle ? theme.colorPalette.textSecondary : theme.colorPalette.textPrimary,
+            fontFamily: isTitle ? theme.typography.titleFontFamily : theme.typography.bodyFontFamily,
+            fontSize: isTitle
+              ? theme.typography.titleFontSize
+              : isSubtitle
+                ? theme.typography.subtitleFontSize
+                : isSmall
+                  ? theme.typography.smallFontSize
+                  : theme.typography.bodyFontSize,
+          };
+        })
+      ),
+    })),
+  };
 }

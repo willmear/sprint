@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { PresentationSlideElement, ShapeType } from "@/types/presentation";
+import type { PresentationSlideElement, ShapeType, SlideElementRole } from "@/types/presentation";
 
 const fonts = ["Aptos", "Arial", "Georgia", "Times New Roman", "Menlo", "Helvetica", "Verdana", "Calibri", "Trebuchet MS"];
 const shapeTypes: Array<{ label: string; value: ShapeType }> = [
@@ -49,6 +49,7 @@ export function SlideEditorToolbar({
   onDeleteElement,
   onLayerBackward,
   onLayerForward,
+  onSetElementRole,
   onChangeFormatting,
 }: {
   selectedElement: PresentationSlideElement | null;
@@ -58,6 +59,7 @@ export function SlideEditorToolbar({
   onDeleteElement: () => void;
   onLayerBackward: () => void;
   onLayerForward: () => void;
+  onSetElementRole: (role: SlideElementRole) => void;
   onChangeFormatting: (
     updates: Partial<
       Pick<
@@ -78,6 +80,7 @@ export function SlideEditorToolbar({
 }) {
   const disabled = !selectedElement;
   const isTextElement = selectedElement?.elementType !== "SHAPE";
+  const bulletActive = selectedElement?.role === "BODY_BULLETS";
 
   return (
     <div className="border-b border-slate-200 bg-[#f7f8fa] px-4 py-2">
@@ -141,6 +144,9 @@ export function SlideEditorToolbar({
           </ToolbarButton>
           <ToolbarButton active={selectedElement?.underline} disabled={!isTextElement || disabled} onClick={() => onChangeFormatting({ underline: !selectedElement?.underline })}>
             Underline
+          </ToolbarButton>
+          <ToolbarButton active={bulletActive} disabled={!isTextElement || disabled} onClick={() => onSetElementRole(bulletActive ? "BODY" : "BODY_BULLETS")}>
+            Bullets
           </ToolbarButton>
           <select
             className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none disabled:opacity-50"

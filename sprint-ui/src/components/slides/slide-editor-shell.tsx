@@ -3,7 +3,7 @@ import { SlideEditorToolbar } from "@/components/slides/slide-editor-toolbar";
 import { SlideInspectorPanel } from "@/components/slides/slide-inspector-panel";
 import { SlideThumbnailPane } from "@/components/slides/slide-thumbnail-pane";
 import { SlideWorkspace } from "@/components/slides/slide-workspace";
-import type { AddSlideRequest, DeckStatus, PresentationDeck, PresentationSlide, PresentationSlideElement, ShapeType } from "@/types/presentation";
+import type { AddSlideRequest, DeckStatus, PresentationDeck, PresentationSlide, PresentationSlideElement, ShapeType, SlideElementRole } from "@/types/presentation";
 
 export function SlideEditorShell({
   deck,
@@ -11,12 +11,14 @@ export function SlideEditorShell({
   selectedElement,
   dirty,
   savePending,
+  exportPending,
   reviewHref,
   onDeckTitleChange,
   onDeckSubtitleChange,
   onDeckStatusChange,
-  onSave,
   onThemeChange,
+  onSave,
+  onExportPowerPoint,
   onSelectSlide,
   onAddSlide,
   onDuplicateSlide,
@@ -29,6 +31,7 @@ export function SlideEditorShell({
   onDeleteElement,
   onLayerBackward,
   onLayerForward,
+  onSetElementRole,
   onChangeElementText,
   onUpdateElementFrame,
   onChangeElementFormatting,
@@ -41,12 +44,14 @@ export function SlideEditorShell({
   selectedElement: PresentationSlideElement | null;
   dirty: boolean;
   savePending?: boolean;
+  exportPending?: boolean;
   reviewHref: string;
   onDeckTitleChange: (value: string) => void;
   onDeckSubtitleChange: (value: string) => void;
   onDeckStatusChange: (value: DeckStatus) => void;
+  onThemeChange: (themeId: string) => void;
   onSave: () => void;
-  onThemeChange: (value: string) => void;
+  onExportPowerPoint: () => void;
   onSelectSlide: (slideId: string) => void;
   onAddSlide: (payload: AddSlideRequest) => void;
   onDuplicateSlide: () => void;
@@ -59,6 +64,7 @@ export function SlideEditorShell({
   onDeleteElement: () => void;
   onLayerBackward: () => void;
   onLayerForward: () => void;
+  onSetElementRole: (role: SlideElementRole) => void;
   onChangeElementText: (elementId: string, text: string) => void;
   onUpdateElementFrame: (elementId: string, nextFrame: Pick<PresentationSlideElement, "x" | "y" | "width" | "height">) => void;
   onChangeElementFormatting: (
@@ -70,7 +76,12 @@ export function SlideEditorShell({
     >
   ) => void;
   onSelectedElementChange: (
-    updates: Partial<Pick<PresentationSlideElement, "textContent" | "x" | "y" | "width" | "height" | "fillColor" | "borderColor" | "borderWidth" | "textColor">>
+    updates: Partial<
+      Pick<
+        PresentationSlideElement,
+        "role" | "textContent" | "fontFamily" | "fontSize" | "bold" | "italic" | "underline" | "textAlignment" | "x" | "y" | "width" | "height" | "fillColor" | "borderColor" | "borderWidth" | "textColor"
+      >
+    >
   ) => void;
   onSlideStyleChange: (updates: Partial<Pick<PresentationSlide, "backgroundColor" | "showGrid">>) => void;
   onUpdateNotes: (notes: string) => void;
@@ -79,16 +90,16 @@ export function SlideEditorShell({
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#f3f4f6]">
       <SlideEditorTopBar
         dirty={dirty}
+        exportPending={exportPending}
+        onExportPowerPoint={onExportPowerPoint}
         onSave={onSave}
         onStatusChange={onDeckStatusChange}
         onSubtitleChange={onDeckSubtitleChange}
-        onThemeChange={onThemeChange}
         onTitleChange={onDeckTitleChange}
         reviewHref={reviewHref}
         savePending={savePending}
         status={deck.status}
         subtitle={deck.subtitle}
-        themeId={deck.themeId}
         title={deck.title}
       />
 
@@ -100,6 +111,7 @@ export function SlideEditorShell({
         onDuplicateElement={onDuplicateElement}
         onLayerBackward={onLayerBackward}
         onLayerForward={onLayerForward}
+        onSetElementRole={onSetElementRole}
         selectedElement={selectedElement}
       />
 
@@ -127,6 +139,7 @@ export function SlideEditorShell({
 
         <SlideInspectorPanel
           deckTheme={deck.theme}
+          onThemeChange={onThemeChange}
           onSelectedElementChange={onSelectedElementChange}
           onSlideStyleChange={onSlideStyleChange}
           onUpdateNotes={onUpdateNotes}

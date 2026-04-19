@@ -21,6 +21,10 @@ export async function copyToClipboard(text: string) {
 
 export function downloadTextFile(fileName: string, content: string, contentType: string) {
   const blob = new Blob([content], { type: contentType });
+  downloadBlob(fileName, blob);
+}
+
+export function downloadBlob(fileName: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

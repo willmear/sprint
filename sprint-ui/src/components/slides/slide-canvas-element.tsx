@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ShapeElement } from "@/components/slides/shape-element";
 import { TextBoxElement } from "@/components/slides/text-box-element";
+import type { ElementPreviewStyle } from "@/lib/presentation-preview";
 import type { ResizeHandle } from "@/components/slides/selection-overlay";
 import type { PresentationSlideElement } from "@/types/presentation";
 
@@ -33,12 +34,14 @@ type InteractionState =
 
 export function SlideCanvasElement({
   element,
+  previewStyle,
   selected,
   onSelect,
   onChange,
   onUpdateFrame,
 }: {
   element: PresentationSlideElement;
+  previewStyle?: ElementPreviewStyle;
   selected: boolean;
   onSelect: () => void;
   onChange: (text: string) => void;
@@ -145,6 +148,7 @@ export function SlideCanvasElement({
       ) : (
         <TextBoxElement
           element={element}
+          previewStyle={previewStyle}
           onChange={onChange}
           onDragStart={(event) => startInteraction("drag", event)}
           onResizeStart={(handle, event) => startInteraction("resize", event, handle)}

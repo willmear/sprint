@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { Input } from "@/components/ui/input";
-import { PRESENTATION_THEMES } from "@/lib/presentation-themes";
 import type { DeckStatus } from "@/types/presentation";
 
 const deckStatuses: DeckStatus[] = ["DRAFT", "READY", "ARCHIVED"];
@@ -9,28 +8,28 @@ const deckStatuses: DeckStatus[] = ["DRAFT", "READY", "ARCHIVED"];
 export function SlideEditorTopBar({
   title,
   subtitle,
-  themeId,
   status,
   dirty,
   savePending,
+  exportPending,
   reviewHref,
   onTitleChange,
   onSubtitleChange,
-  onThemeChange,
   onStatusChange,
+  onExportPowerPoint,
   onSave,
 }: {
   title: string;
   subtitle?: string | null;
-  themeId?: string | null;
   status: DeckStatus;
   dirty: boolean;
   savePending?: boolean;
+  exportPending?: boolean;
   reviewHref: string;
   onTitleChange: (value: string) => void;
   onSubtitleChange: (value: string) => void;
-  onThemeChange: (value: string) => void;
   onStatusChange: (value: DeckStatus) => void;
+  onExportPowerPoint: () => void;
   onSave: () => void;
 }) {
   return (
@@ -61,17 +60,6 @@ export function SlideEditorTopBar({
         <div className="flex flex-wrap items-center gap-2 border-l border-slate-200 pl-4">
           <select
             className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
-            onChange={(event) => onThemeChange(event.target.value)}
-            value={themeId || PRESENTATION_THEMES[0].themeId}
-          >
-            {PRESENTATION_THEMES.map((theme) => (
-              <option key={theme.themeId} value={theme.themeId}>
-                {theme.displayName}
-              </option>
-            ))}
-          </select>
-          <select
-            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
             onChange={(event) => onStatusChange(event.target.value as DeckStatus)}
             value={status}
           >
@@ -90,11 +78,12 @@ export function SlideEditorTopBar({
             {savePending ? "Saving..." : "Save"}
           </button>
           <button
-            className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-slate-100 px-3 text-sm font-medium text-slate-400"
+            className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+            disabled={savePending || exportPending}
+            onClick={onExportPowerPoint}
             type="button"
-            disabled
           >
-            Export PPTX soon
+            {exportPending ? "Exporting PPTX..." : "Export PPTX"}
           </button>
           <Link
             className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
